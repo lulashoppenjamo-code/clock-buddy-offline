@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      employees: {
+        Row: {
+          active: boolean
+          color: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          pin: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          pin: string
+        }
+        Update: {
+          active?: boolean
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          pin?: string
+        }
+        Relationships: []
+      }
+      time_entries: {
+        Row: {
+          accuracy: number | null
+          client_id: string
+          created_at: string
+          device_label: string | null
+          employee_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          occurred_at: string
+          owner_id: string
+          photo_path: string | null
+          type: Database["public"]["Enums"]["entry_type"]
+        }
+        Insert: {
+          accuracy?: number | null
+          client_id: string
+          created_at?: string
+          device_label?: string | null
+          employee_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          occurred_at: string
+          owner_id: string
+          photo_path?: string | null
+          type: Database["public"]["Enums"]["entry_type"]
+        }
+        Update: {
+          accuracy?: number | null
+          client_id?: string
+          created_at?: string
+          device_label?: string | null
+          employee_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          occurred_at?: string
+          owner_id?: string
+          photo_path?: string | null
+          type?: Database["public"]["Enums"]["entry_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +105,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      entry_type: "clock_in" | "clock_out" | "break_start" | "break_end"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +232,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      entry_type: ["clock_in", "clock_out", "break_start", "break_end"],
+    },
   },
 } as const
