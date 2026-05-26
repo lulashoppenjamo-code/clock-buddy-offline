@@ -8,10 +8,40 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, Plus, Loader2 } from "lucide-react";
+import { AdminGate } from "@/components/AdminGate";
 
 export const Route = createFileRoute("/empleadas")({
-  component: EmployeesPage,
+  component: EmployeesRoute,
 });
+
+function EmployeesRoute() {
+  const navigate = useNavigate();
+  const [uid, setUid] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const id = data.session?.user.id ?? null;
+      if (!id) {
+        navigate({ to: "/auth" });
+        return;
+      }
+      setUid(id);
+      setChecking(false);
+    });
+  }, [navigate]);
+  if (checking || !uid) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <AdminGate ownerId={uid}>
+      <EmployeesPage />
+    </AdminGate>
+  );
+}
 
 type Employee = { id: string; name: string; pin: string; color: string; active: boolean };
 
