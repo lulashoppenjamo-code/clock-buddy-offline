@@ -52,10 +52,10 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-slate-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-rose-100 p-4">
       <Card className="w-full max-w-sm p-6 space-y-5">
         <div className="text-center space-y-2">
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 rounded-2xl bg-pink-600 flex items-center justify-center">
             <Clock className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-xl font-semibold">Reloj Checador</h1>
@@ -93,7 +93,7 @@ function AuthPage() {
         </form>
         <button
           type="button"
-          className="text-sm text-indigo-600 hover:underline w-full text-center"
+          className="text-sm text-pink-600 hover:underline w-full text-center"
           onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
         >
           {mode === "signin" ? "¿No tienes cuenta? Regístrate" : "Ya tengo cuenta"}
