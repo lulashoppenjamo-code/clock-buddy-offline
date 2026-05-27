@@ -70,7 +70,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { title: "Reloj Checador" },
       { name: "description", content: "Reloj checador para empleadas, funciona sin internet." },
-      { name: "theme-color", content: "#6366f1" },
+      { name: "theme-color", content: "#db2777" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Checador" },

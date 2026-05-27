@@ -4,9 +4,9 @@
   "description": "Reloj checador para empleadas con sincronización offline",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#6366f1",
-  "orientation": "portrait",
+  "background_color": "#fdf2f8",
+  "theme_color": "#db2777",
+  "orientation": "any",
   "icons": [
     {
       "src": "/icon-512.png",
