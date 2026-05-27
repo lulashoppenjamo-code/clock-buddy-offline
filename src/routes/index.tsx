@@ -176,7 +176,7 @@ function Index() {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-slate-50">
+      <div className="min-h-screen grid place-items-center bg-pink-50">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -184,7 +184,7 @@ function Index() {
 
   if (!ownerId) {
     return (
-      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-indigo-50 to-slate-100 p-6 text-center">
+      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-pink-50 to-rose-100 p-6 text-center">
         <Card className="p-6 space-y-4 max-w-sm">
           <h1 className="text-xl font-semibold">Reloj Checador</h1>
           <p className="text-sm text-muted-foreground">
@@ -200,7 +200,7 @@ function Index() {
 
   if (employees.length === 0) {
     return (
-      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-indigo-50 to-slate-100 p-6 text-center">
+      <div className="min-h-screen grid place-items-center bg-gradient-to-br from-pink-50 to-rose-100 p-6 text-center">
         <Card className="p-6 space-y-4 max-w-sm">
           <h1 className="text-xl font-semibold">¡Bienvenida!</h1>
           <p className="text-sm text-muted-foreground">
@@ -221,7 +221,7 @@ function Index() {
     return (
       <div
         className="min-h-screen flex flex-col p-5 text-white"
-        style={{ background: `linear-gradient(160deg, ${selected.color}, #0f172a)` }}
+        style={{ background: `linear-gradient(160deg, ${selected.color}, #4a051c)` }}
       >
         <TopBar online={online} pending={pending} dark />
         <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
@@ -229,7 +229,7 @@ function Index() {
             <p className="text-white/70 text-sm">Hola</p>
             <h2 className="text-4xl font-bold">{selected.name}</h2>
             <p className="text-white/70 mt-2 tabular-nums text-lg">
-              {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              {now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true })}
             </p>
             <p className="text-white/60 text-xs">
               {now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
@@ -299,12 +299,12 @@ function Index() {
 
   // Keypad
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col p-5">
+    <div className="min-h-screen bg-gradient-to-br from-rose-950 via-pink-950 to-rose-950 text-white flex flex-col p-5">
       <TopBar online={online} pending={pending} dark />
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
         <div className="text-center">
           <p className="text-5xl font-bold tabular-nums tracking-tight">
-            {now.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+            {now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true })}
           </p>
           <p className="text-white/60 text-sm capitalize">
             {now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}

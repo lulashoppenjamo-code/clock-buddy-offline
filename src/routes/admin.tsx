@@ -162,7 +162,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
           empName(e.employee_id),
           typeLabel(e.type),
           format(d, "yyyy-MM-dd"),
-          format(d, "HH:mm:ss"),
+          format(d, "h:mm:ss a", { locale: es }),
           e.latitude ?? "",
           e.longitude ?? "",
           e.accuracy ?? "",
@@ -197,7 +197,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-pink-50">
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <Link to="/" className="flex items-center gap-1 text-sm">
           <ArrowLeft className="h-4 w-4" /> Volver
@@ -285,7 +285,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               <div key={e.id}>
                 <button
                   onClick={() => toggleOpen(e)}
-                  className="w-full p-3 flex items-center gap-3 text-sm text-left hover:bg-slate-50"
+                  className="w-full p-3 flex items-center gap-3 text-sm text-left hover:bg-pink-50"
                 >
                   <div
                     className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
@@ -298,14 +298,14 @@ function AdminPage({ ownerId }: { ownerId: string }) {
                       {emp?.name ?? "—"} · {typeLabel(e.type)}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      {format(d, "EEE d MMM, HH:mm", { locale: es })}
+                      {format(d, "EEE d MMM, h:mm a", { locale: es })}
                       {hasLoc && <MapPin className="h-3 w-3" />}
                       {e.photo_path && <span>📷</span>}
                     </p>
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="px-3 pb-3 space-y-3 bg-slate-50/50">
+                  <div className="px-3 pb-3 space-y-3 bg-pink-50/50">
                     {e.photo_path ? (
                       photoUrls[e.id] ? (
                         <img
@@ -346,7 +346,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
                             href={mapsUrl!}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-indigo-600 font-medium flex items-center gap-1"
+                            className="text-pink-600 font-medium flex items-center gap-1"
                           >
                             <MapPin className="h-3 w-3" /> Abrir mapa
                           </a>

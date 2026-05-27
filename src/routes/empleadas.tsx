@@ -143,7 +143,7 @@ function EmployeesPage() {
   const suggestions = DEFAULTS.filter((n) => !existingNames.has(n.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-pink-50">
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <Link to="/" className="flex items-center gap-1 text-sm">
           <ArrowLeft className="h-4 w-4" /> Volver
@@ -174,7 +174,7 @@ function EmployeesPage() {
                       key={s}
                       type="button"
                       onClick={() => quickAdd(s)}
-                      className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                      className="text-xs px-2 py-1 rounded-full bg-pink-100 text-pink-700 hover:bg-pink-200"
                     >
                       + {s}
                     </button>
@@ -204,7 +204,7 @@ function EmployeesPage() {
                     type="button"
                     onClick={() => setColor(c)}
                     className={`h-8 w-8 rounded-full transition-transform ${
-                      color === c ? "ring-2 ring-offset-2 ring-slate-900 scale-110" : ""
+                      color === c ? "ring-2 ring-offset-2 ring-pink-900 scale-110" : ""
                     }`}
                     style={{ backgroundColor: c }}
                     aria-label={c}
