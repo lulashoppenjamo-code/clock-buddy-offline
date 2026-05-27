@@ -79,10 +79,10 @@ export function AdminGate({
   if (unlocked) return <>{children}</>;
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-900 to-indigo-950 p-6">
+    <div className="min-h-screen grid place-items-center bg-gradient-to-br from-rose-950 to-pink-950 p-6">
       <Card className="p-6 w-full max-w-sm space-y-4">
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="h-12 w-12 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center">
+          <div className="h-12 w-12 rounded-full bg-pink-100 text-pink-700 grid place-items-center">
             <Lock className="h-5 w-5" />
           </div>
           <h1 className="font-semibold text-lg">
