@@ -1,12 +1,61 @@
-export function getPosition(): Promise<GeolocationPosition | null> {
+export type GeoResult =
+  | { ok: true; position: GeolocationPosition }
+  | { ok: false; reason: "unsupported" | "denied" | "unavailable" | "timeout" | "insecure" };
+
+export function getPosition(): Promise<GeoResult> {
   return new Promise((resolve) => {
-    if (!("geolocation" in navigator)) return resolve(null);
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
+      return resolve({ ok: false, reason: "unsupported" });
+    }
+    // Geolocation only works on HTTPS or localhost
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      return resolve({ ok: false, reason: "insecure" });
+    }
+
+    let settled = false;
+    const finish = (r: GeoResult) => {
+      if (settled) return;
+      settled = true;
+      resolve(r);
+    };
+
+    // First try: high accuracy with longer timeout
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve(p),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 },
+      (p) => finish({ ok: true, position: p }),
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          return finish({ ok: false, reason: "denied" });
+        }
+        // Fallback: low accuracy, allow cached
+        navigator.geolocation.getCurrentPosition(
+          (p) => finish({ ok: true, position: p }),
+          (err2) => {
+            if (err2.code === err2.PERMISSION_DENIED) finish({ ok: false, reason: "denied" });
+            else if (err2.code === err2.TIMEOUT) finish({ ok: false, reason: "timeout" });
+            else finish({ ok: false, reason: "unavailable" });
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   });
+}
+
+export function geoReasonMessage(reason: Exclude<GeoResult, { ok: true }>["reason"]) {
+  switch (reason) {
+    case "denied":
+      return "Permiso de ubicación denegado. Actívalo en los ajustes del navegador.";
+    case "unsupported":
+      return "Este dispositivo no soporta geolocalización.";
+    case "insecure":
+      return "La ubicación requiere una conexión segura (HTTPS).";
+    case "timeout":
+      return "No se pudo obtener la ubicación (tiempo agotado). Revisa que el GPS esté activado.";
+    case "unavailable":
+    default:
+      return "No se pudo obtener la ubicación. Activa el GPS e inténtalo de nuevo.";
+  }
 }
 
 export function captureFromFileInput(file: File): Promise<Blob> {
