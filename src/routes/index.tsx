@@ -11,7 +11,7 @@ import {
 import { syncPending } from "@/lib/sync";
 import { useOnline } from "@/lib/use-online";
 import { uuid } from "@/lib/uuid";
-import { captureFromFileInput, deviceLabel, getPosition } from "@/lib/capture";
+import { captureFromFileInput, deviceLabel, geoReasonMessage, getPosition } from "@/lib/capture";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
