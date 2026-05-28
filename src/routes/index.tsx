@@ -11,7 +11,7 @@ import {
 import { syncPending } from "@/lib/sync";
 import { useOnline } from "@/lib/use-online";
 import { uuid } from "@/lib/uuid";
-import { captureFromFileInput, deviceLabel, getPosition } from "@/lib/capture";
+import { captureFromFileInput, deviceLabel, geoReasonMessage, getPosition } from "@/lib/capture";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -124,7 +124,11 @@ function Index() {
     if (!selected || !ownerId) return;
     setBusy(type);
     try {
-      const pos = await getPosition();
+      const geo = await getPosition();
+      if (!geo.ok) {
+        toast.warning(geoReasonMessage(geo.reason));
+      }
+      const pos = geo.ok ? geo.position : null;
       const entry = {
         client_id: uuid(),
         owner_id: ownerId,
