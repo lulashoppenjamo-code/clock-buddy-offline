@@ -124,7 +124,11 @@ function Index() {
     if (!selected || !ownerId) return;
     setBusy(type);
     try {
-      const pos = await getPosition();
+      const geo = await getPosition();
+      if (!geo.ok) {
+        toast.warning(geoReasonMessage(geo.reason));
+      }
+      const pos = geo.ok ? geo.position : null;
       const entry = {
         client_id: uuid(),
         owner_id: ownerId,
