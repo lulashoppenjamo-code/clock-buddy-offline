@@ -43,6 +43,13 @@ function Index() {
     let mounted = true;
 
     (async () => {
+      // 0) Recuperar último ownerId conocido para arrancar offline
+      try {
+        const savedUid =
+          typeof window !== "undefined" ? window.localStorage.getItem("checador.ownerId") : null;
+        if (mounted && savedUid) setOwnerId(savedUid);
+      } catch {}
+
       // 1) Mostrar empleadas cacheadas inmediatamente (camino offline)
       try {
         const cached = await getCachedEmployees();
@@ -60,7 +67,12 @@ function Index() {
         uid = data?.session?.user?.id ?? null;
       } catch {}
       if (!mounted) return;
-      setOwnerId(uid);
+      if (uid) {
+        setOwnerId(uid);
+        try {
+          window.localStorage.setItem("checador.ownerId", uid);
+        } catch {}
+      }
       setLoading(false);
 
       // 3) Si hay internet y sesión, refrescar empleadas desde servidor
@@ -81,7 +93,11 @@ function Index() {
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setOwnerId(s?.user.id ?? null);
+      const newUid = s?.user.id ?? null;
+      setOwnerId(newUid);
+      try {
+        if (newUid) window.localStorage.setItem("checador.ownerId", newUid);
+      } catch {}
     });
     return () => {
       mounted = false;
