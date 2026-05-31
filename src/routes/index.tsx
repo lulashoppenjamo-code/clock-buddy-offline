@@ -73,9 +73,11 @@ function Index() {
 
   // tick clock
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
 
   // sync when online
   const doSync = useCallback(async () => {
