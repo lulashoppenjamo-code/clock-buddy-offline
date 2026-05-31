@@ -31,7 +31,7 @@ function Index() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selected, setSelected] = useState<Employee | null>(null);
   const [pin, setPin] = useState("");
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [pending, setPending] = useState(0);
   const [lastEntryType, setLastEntryType] = useState<EntryType | null>(null);
   const [busy, setBusy] = useState<EntryType | null>(null);
