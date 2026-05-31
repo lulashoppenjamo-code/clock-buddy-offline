@@ -41,29 +41,63 @@ function Index() {
   // session + employees
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(async ({ data }) => {
+
+    (async () => {
+      // 0) Recuperar último ownerId conocido para arrancar offline
+      try {
+        const savedUid =
+          typeof window !== "undefined" ? window.localStorage.getItem("checador.ownerId") : null;
+        if (mounted && savedUid) setOwnerId(savedUid);
+      } catch {}
+
+      // 1) Mostrar empleadas cacheadas inmediatamente (camino offline)
+      try {
+        const cached = await getCachedEmployees();
+        if (mounted && cached.length) setEmployees(cached);
+      } catch {}
+
+      // 2) Intentar leer sesión con timeout para no colgar offline
+      let uid: string | null = null;
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeout = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 1500),
+        );
+        const { data } = (await Promise.race([sessionPromise, timeout])) as any;
+        uid = data?.session?.user?.id ?? null;
+      } catch {}
       if (!mounted) return;
-      const uid = data.session?.user.id ?? null;
-      setOwnerId(uid);
-      // load cached employees first (offline path)
-      const cached = await getCachedEmployees();
-      if (cached.length) setEmployees(cached);
-      if (uid && navigator.onLine) {
-        const { data: emps } = await supabase
-          .from("employees")
-          .select("id,name,pin,color")
-          .eq("owner_id", uid)
-          .eq("active", true)
-          .order("name");
-        if (emps) {
-          setEmployees(emps);
-          await cacheEmployees(emps);
-        }
+      if (uid) {
+        setOwnerId(uid);
+        try {
+          window.localStorage.setItem("checador.ownerId", uid);
+        } catch {}
       }
       setLoading(false);
-    });
+
+      // 3) Si hay internet y sesión, refrescar empleadas desde servidor
+      if (uid && typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          const { data: emps } = await supabase
+            .from("employees")
+            .select("id,name,pin,color")
+            .eq("owner_id", uid)
+            .eq("active", true)
+            .order("name");
+          if (mounted && emps) {
+            setEmployees(emps);
+            await cacheEmployees(emps);
+          }
+        } catch {}
+      }
+    })();
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setOwnerId(s?.user.id ?? null);
+      const newUid = s?.user.id ?? null;
+      setOwnerId(newUid);
+      try {
+        if (newUid) window.localStorage.setItem("checador.ownerId", newUid);
+      } catch {}
     });
     return () => {
       mounted = false;
