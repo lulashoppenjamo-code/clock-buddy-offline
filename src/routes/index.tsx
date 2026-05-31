@@ -31,7 +31,7 @@ function Index() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selected, setSelected] = useState<Employee | null>(null);
   const [pin, setPin] = useState("");
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [pending, setPending] = useState(0);
   const [lastEntryType, setLastEntryType] = useState<EntryType | null>(null);
   const [busy, setBusy] = useState<EntryType | null>(null);
@@ -73,9 +73,11 @@ function Index() {
 
   // tick clock
   useEffect(() => {
+    setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
 
   // sync when online
   const doSync = useCallback(async () => {
@@ -233,11 +235,12 @@ function Index() {
             <p className="text-white/70 text-sm">Hola</p>
             <h2 className="text-4xl font-bold">{selected.name}</h2>
             <p className="text-white/70 mt-2 tabular-nums text-lg">
-              {now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true })}
+              {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }) : "--:--"}
             </p>
             <p className="text-white/60 text-xs">
-              {now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
+              {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
             </p>
+
           </div>
 
           <div className="w-full max-w-xs space-y-3">
@@ -308,11 +311,12 @@ function Index() {
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
         <div className="text-center">
           <p className="text-5xl font-bold tabular-nums tracking-tight">
-            {now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true })}
+            {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true }) : "--:--"}
           </p>
           <p className="text-white/60 text-sm capitalize">
-            {now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
+            {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
           </p>
+
         </div>
 
         <div>
