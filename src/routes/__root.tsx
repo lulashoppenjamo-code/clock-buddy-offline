@@ -7,9 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { syncPending } from "@/lib/sync";
 
 import appCss from "../styles.css?url";
+
 
 function NotFoundComponent() {
   return (
@@ -112,6 +115,30 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    // Registrar service worker para uso offline
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .catch((e) => console.warn("SW register failed", e));
+    }
+
+    // Sincronizar cuando vuelve internet o la pestaña se vuelve visible
+    const trySync = () => {
+      if (navigator.onLine) syncPending().catch(() => {});
+    };
+    trySync();
+    window.addEventListener("online", trySync);
+    document.addEventListener("visibilitychange", trySync);
+    const interval = window.setInterval(trySync, 30000);
+    return () => {
+      window.removeEventListener("online", trySync);
+      document.removeEventListener("visibilitychange", trySync);
+      window.clearInterval(interval);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
@@ -119,3 +146,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
