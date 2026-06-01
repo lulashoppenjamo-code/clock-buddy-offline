@@ -94,10 +94,16 @@ function Index() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       const newUid = s?.user.id ?? null;
-      setOwnerId(newUid);
-      try {
-        if (newUid) window.localStorage.setItem("checador.ownerId", newUid);
-      } catch {}
+      if (newUid) {
+        // Sólo actualizamos al iniciar/renovar sesión. NUNCA limpiamos el
+        // ownerId automáticamente: si el token expira sin internet, la app
+        // debe seguir permitiendo checar. El cierre de sesión sólo ocurre
+        // de forma explícita desde el panel de administrador.
+        setOwnerId(newUid);
+        try {
+          window.localStorage.setItem("checador.ownerId", newUid);
+        } catch {}
+      }
     });
     return () => {
       mounted = false;
