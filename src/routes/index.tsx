@@ -166,6 +166,17 @@ function Index() {
     if (!selected || !ownerId) return;
     setBusy(type);
     try {
+      // Prevenir duplicados: si la última checada de esta empleada es del
+      // mismo tipo y ocurrió hace menos de 60 segundos, la ignoramos.
+      const last = await getLastEntryForEmployee(selected.id);
+      if (last && last.type === type) {
+        const ageSec = (Date.now() - new Date(last.occurred_at).getTime()) / 1000;
+        if (ageSec < 60) {
+          toast.warning(`Ya registraste ${labelFor(type).toLowerCase()} hace un momento`);
+          setSelected(null);
+          return;
+        }
+      }
       const geo = await getPosition();
       if (!geo.ok) {
         toast.warning(geoReasonMessage(geo.reason));
