@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
+  id: '/admin-limpieza',
+  path: '/admin-limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/limpieza': typeof LimpiezaRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/limpieza': typeof LimpiezaRoute
@@ -59,21 +67,36 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin-limpieza'
+    | '/auth'
+    | '/empleadas'
+    | '/limpieza'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
-  id: '__root__' | '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
+  to: '/' | '/admin' | '/admin-limpieza' | '/auth' | '/empleadas' | '/limpieza'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/admin-limpieza'
+    | '/auth'
+    | '/empleadas'
+    | '/limpieza'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AuthRoute: typeof AuthRoute
   EmpleadasRoute: typeof EmpleadasRoute
   LimpiezaRoute: typeof LimpiezaRoute
@@ -102,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-limpieza': {
+      id: '/admin-limpieza'
+      path: '/admin-limpieza'
+      fullPath: '/admin-limpieza'
+      preLoaderRoute: typeof AdminLimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -122,6 +152,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminLimpiezaRoute: AdminLimpiezaRoute,
   AuthRoute: AuthRoute,
   EmpleadasRoute: EmpleadasRoute,
   LimpiezaRoute: LimpiezaRoute,
@@ -129,3 +160,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
