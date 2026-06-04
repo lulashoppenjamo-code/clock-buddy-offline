@@ -14,6 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
+      cleaning_areas: {
+        Row: {
+          active: boolean
+          branch: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          active?: boolean
+          branch: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          active?: boolean
+          branch?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      cleaning_logs: {
+        Row: {
+          area_id: string
+          branch: string
+          client_id: string
+          completed_at: string
+          created_at: string
+          device_label: string | null
+          employee_id: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          owner_id: string
+          photo_after_path: string | null
+          photo_before_path: string | null
+          task_id: string
+        }
+        Insert: {
+          area_id: string
+          branch: string
+          client_id: string
+          completed_at?: string
+          created_at?: string
+          device_label?: string | null
+          employee_id: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          owner_id: string
+          photo_after_path?: string | null
+          photo_before_path?: string | null
+          task_id: string
+        }
+        Update: {
+          area_id?: string
+          branch?: string
+          client_id?: string
+          completed_at?: string
+          created_at?: string
+          device_label?: string | null
+          employee_id?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          owner_id?: string
+          photo_after_path?: string | null
+          photo_before_path?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_logs_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_logs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cleaning_tasks: {
+        Row: {
+          active: boolean
+          area_id: string
+          created_at: string
+          description: string | null
+          frequency: Database["public"]["Enums"]["cleaning_frequency"]
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          active?: boolean
+          area_id: string
+          created_at?: string
+          description?: string | null
+          frequency?: Database["public"]["Enums"]["cleaning_frequency"]
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          active?: boolean
+          area_id?: string
+          created_at?: string
+          description?: string | null
+          frequency?: Database["public"]["Enums"]["cleaning_frequency"]
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_tasks_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           active: boolean
@@ -105,6 +249,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      cleaning_frequency: "daily" | "weekly" | "monthly"
       entry_type: "clock_in" | "clock_out" | "break_start" | "break_end"
     }
     CompositeTypes: {
@@ -233,6 +378,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cleaning_frequency: ["daily", "weekly", "monthly"],
       entry_type: ["clock_in", "clock_out", "break_start", "break_end"],
     },
   },
