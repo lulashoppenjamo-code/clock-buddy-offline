@@ -404,7 +404,12 @@ function Index() {
         </div>
       </div>
 
-      <div className="flex justify-center gap-2 pt-4">
+      <div className="flex justify-center gap-2 pt-4 flex-wrap">
+        <Link to="/limpieza">
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            ✨ Limpieza
+          </Button>
+        </Link>
         <Link to="/empleadas">
           <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
             <Settings className="h-4 w-4 mr-1" /> Empleadas
