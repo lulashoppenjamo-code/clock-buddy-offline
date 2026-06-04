@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const LimpiezaRoute = LimpiezaRouteImport.update({
+  id: '/limpieza',
+  path: '/limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EmpleadasRoute = EmpleadasRouteImport.update({
   id: '/empleadas',
   path: '/empleadas',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/auth' | '/empleadas'
+  fullPaths: '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/empleadas'
-  id: '__root__' | '/' | '/admin' | '/auth' | '/empleadas'
+  to: '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
+  id: '__root__' | '/' | '/admin' | '/auth' | '/empleadas' | '/limpieza'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   EmpleadasRoute: typeof EmpleadasRoute
+  LimpiezaRoute: typeof LimpiezaRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/limpieza': {
+      id: '/limpieza'
+      path: '/limpieza'
+      fullPath: '/limpieza'
+      preLoaderRoute: typeof LimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/empleadas': {
       id: '/empleadas'
       path: '/empleadas'
@@ -107,7 +124,18 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   EmpleadasRoute: EmpleadasRoute,
+  LimpiezaRoute: LimpiezaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
