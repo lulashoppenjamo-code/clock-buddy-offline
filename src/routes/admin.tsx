@@ -246,6 +246,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
           <Button variant="outline" className="w-full" onClick={exportCSV} disabled={filtered.length === 0}>
             <Download className="h-4 w-4" /> Exportar CSV ({filtered.length})
           </Button>
+          <Link to="/admin-limpieza" className="block">
+            <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+              ✨ Módulo de Limpieza
+            </Button>
+          </Link>
         </Card>
 
         <div className="grid grid-cols-2 gap-2">
