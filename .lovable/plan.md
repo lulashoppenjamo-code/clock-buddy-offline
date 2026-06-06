@@ -1,94 +1,62 @@
-## Módulo de Limpieza
+## Módulo "Solicitud de Insumos de Limpieza"
 
-### Decisiones del usuario
-- **Sucursales**: selector fijo con "Sucursal Mina" y "Sucursal Morelos"
-- **Acceso empleado**: botón "Limpieza" aparte en pantalla principal (pide PIN)
-- **Notificaciones**: visuales en app + push del navegador
-- **Fotos**: opcionales (antes/después)
-
----
+Reutiliza empleados, PINs, sucursales (`mina` / `morelos`) y el patrón de cola offline del módulo de Limpieza.
 
 ### 1. Base de datos (migración)
 
-Nuevas tablas en `public`:
+Nuevas tablas en `public` con RLS por `owner_id` + GRANTs:
 
-- **`cleaning_areas`** — áreas por sucursal
-  - `id, owner_id, branch (text: 'mina'|'morelos'), name, active, created_at`
-- **`cleaning_tasks`** — plantillas de tareas recurrentes
-  - `id, owner_id, area_id, name, frequency ('daily'|'weekly'|'monthly'), description, requires_photo, active, created_at`
-- **`cleaning_logs`** — registros de limpiezas completadas
-  - `id, owner_id, task_id, area_id, employee_id, branch, completed_at, notes, photo_before_path, photo_after_path, client_id (idempotencia), latitude, longitude, created_at`
-- **`push_subscriptions`** — suscripciones push del navegador
-  - `id, owner_id, endpoint, p256dh, auth, created_at`
+- **`supply_categories`** — `id, owner_id, name, slug, active` 
+  (semillas: `limpieza`. Preparado para `papeleria`, `cafeteria`, `unas`, `herramientas`, `mantenimiento`)
+- **`supplies`** — `id, owner_id, category_id, name, unit, reorder_days, stock, active`
+  (semillas: cloro 1L, fabuloso 4L, jabón polvo 500g, papel higiénico 4 rollos, escoba, trapeador, recogedor, franela)
+- **`supply_requests`** — `id, owner_id, employee_id, branch, supply_id, quantity, reason ('terminado'|'queda_poco'|'danado'|'otro'), notes, status ('pendiente'|'aprobada'|'entregada'|'rechazada'), requested_at, decided_at, decided_by, delivered_at, client_id`
+- **`supply_movements`** — `id, owner_id, supply_id, branch, type ('entrada'|'salida'|'ajuste'), quantity, request_id (nullable), notes, created_by, created_at`
 
-Todas con RLS (`auth.uid() = owner_id`) + GRANTs a `authenticated` y `service_role`.
+Realtime habilitado en `supply_requests` y `supply_movements` (ADD TABLE supabase_realtime).
 
-Reutiliza bucket `checador-photos` para evidencias.
+### 2. UI Empleados (`src/routes/insumos.tsx`)
 
-### 2. UI Empleados
+- Botón nuevo en `index.tsx`: **"📦 Solicitar Insumos"** (pide PIN igual que Limpieza).
+- Selector de sucursal (Mina/Morelos).
+- Lista de productos agrupados por categoría (sólo Limpieza visible por ahora, las demás categorías quedan estructuradas pero ocultas).
+- Por producto: cantidad, motivo (select), observaciones.
+- Botón "Enviar solicitud" → inserta en `supply_requests` con `status='pendiente'` (cola offline si no hay internet).
+- Pantalla "Mis solicitudes" con estado en vivo.
 
-- En `src/routes/index.tsx`: botón "Limpieza" debajo del teclado.
-- Nueva ruta `src/routes/limpieza.tsx`:
-  - Selector sucursal (Mina/Morelos)
-  - Pide PIN igual que checada
-  - Lista de tareas pendientes hoy/semana/mes agrupadas por área
-  - Cada tarea: checkbox, botón cámara (antes/después), input observaciones
-  - Botón "Completar" → guarda log (con cola offline)
-  - Estado semáforo por tarea
+### 3. Panel admin (`src/routes/admin-insumos.tsx`)
 
-### 3. UI Admin (`src/routes/admin-limpieza.tsx`)
+Pestañas:
+- **Solicitudes**: tabla con filtros (sucursal, empleado, fechas, estado). Acciones por fila: Aprobar / Rechazar / Marcar entregada. Al entregar genera `supply_movement` tipo `salida` y descuenta `stock`.
+- **Inventario**: lista de productos con stock por sucursal, botón "Entrada" (suma stock + movimiento), historial de movimientos.
+- **Historial por producto**: último pedido, frecuencia (días promedio), total por mes, top empleado, top sucursal.
+- **Dashboard**: cards con productos más consumidos, consumo mensual por sucursal, conteos por estado.
+- **Catálogo**: CRUD de productos y categorías (preparado para futuras categorías).
 
-- Dashboard:
-  - Áreas pendientes / vencidas / al día
-  - Top empleado del periodo
-  - % cumplimiento por sucursal
-- CRUD áreas (por sucursal)
-- CRUD tareas recurrentes
-- Historial filtrable (fecha, empleado, sucursal, área)
-- Vista de foto antes/después + ubicación
+### 4. Alertas inteligentes
 
-Link desde `/admin` al nuevo panel.
+Al aprobar/listar una solicitud, comparar `requested_at` contra el último pedido aprobado del mismo producto+sucursal. Si `días < reorder_days`, badge amarillo:
+> "El último pedido de cloro fue hace 8 días. Verifique antes de aprobar."
 
-### 4. Offline + sincronización
+`reorder_days` configurable por producto (default 14).
 
-- Extender `src/lib/offline-queue.ts` y `src/lib/sync.ts` para soportar `cleaning_logs` además de `time_entries`.
-- Cache local de áreas + tareas (carga al abrir con internet).
-- Idempotencia vía `client_id`.
+### 5. Reportes
 
-### 5. Notificaciones
+- Exportar Excel (SheetJS `xlsx`) y PDF (`jspdf` + `jspdf-autotable`) desde la tabla filtrada de solicitudes y desde el dashboard.
 
-- **In-app**: badge rojo en botón "Limpieza" si hay tareas vencidas, cálculo client-side.
-- **Push web**: 
-  - Registrar suscripción al entrar (botón "Activar notificaciones" en admin)
-  - Server function `sendCleaningReminders` + cron `pg_cron` cada hora que llame a `/api/public/hooks/cleaning-reminders`
-  - Calcula tareas vencidas/próximas y manda push usando VAPID
-  - Requiere secrets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+### 6. Sincronización en tiempo real
 
-### 6. Lógica semáforo
+`supabase.channel('supply_requests').on('postgres_changes', ...)` en el panel admin y en "Mis solicitudes" del empleado.
 
-Por tarea+área, basado en `frequency` y último `completed_at`:
-- Verde: < 80% del periodo
-- Amarillo: 80–100% del periodo
-- Rojo: vencido (> periodo)
+### 7. Offline
 
-### Archivos a crear/modificar
+Extender `offline-queue.ts` con store `supply_requests` y `sync.ts` para subirlas con idempotencia por `client_id`.
 
-**Crear**:
-- migración SQL (4 tablas)
-- `src/lib/cleaning.ts` (lógica semáforo, helpers)
-- `src/lib/push.ts` (suscripción, VAPID)
-- `src/routes/limpieza.tsx`
-- `src/routes/admin-limpieza.tsx`
-- `src/routes/api/public/hooks/cleaning-reminders.tsx`
+### Archivos
 
-**Modificar**:
-- `src/routes/index.tsx` (botón Limpieza)
-- `src/routes/admin.tsx` (link al panel limpieza)
-- `src/lib/offline-queue.ts` y `src/lib/sync.ts` (soportar cleaning_logs)
-- `public/sw.js` (manejar push events)
+**Crear**: migración SQL, `src/lib/supplies.ts`, `src/routes/insumos.tsx`, `src/routes/admin-insumos.tsx`.
+**Modificar**: `src/routes/index.tsx` (botón), `src/routes/admin.tsx` (link al panel), `src/lib/sync.ts` y `offline-queue.ts` (cola), `src/integrations/supabase/types.ts` (auto).
 
-### Notas
+**Dependencias nuevas**: `xlsx`, `jspdf`, `jspdf-autotable`.
 
-- Necesito que apruebes para empezar; será un cambio grande (~8 archivos nuevos, 4 modificados, 1 migración).
-- Las claves VAPID las generaré y guardaré como secrets; el navegador pedirá permiso al activar notificaciones.
-- Sucursales hardcoded como `'mina'` y `'morelos'`; fácil de extender después si agregas más.
+¿Apruebas para empezar?

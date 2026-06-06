@@ -251,6 +251,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               ✨ Módulo de Limpieza
             </Button>
           </Link>
+          <Link to="/admin-insumos" className="block">
+            <Button className="w-full bg-amber-600 hover:bg-amber-700">
+              📦 Solicitudes de Insumos
+            </Button>
+          </Link>
         </Card>
 
         <div className="grid grid-cols-2 gap-2">

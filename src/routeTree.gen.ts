@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
+import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
+import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const LimpiezaRoute = LimpiezaRouteImport.update({
   id: '/limpieza',
   path: '/limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsumosRoute = InsumosRouteImport.update({
+  id: '/insumos',
+  path: '/insumos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmpleadasRoute = EmpleadasRouteImport.update({
@@ -36,6 +43,11 @@ const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
   path: '/admin-limpieza',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminInsumosRoute = AdminInsumosRouteImport.update({
+  id: '/admin-insumos',
+  path: '/admin-insumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -50,26 +62,32 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
+  '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
 }
 export interface FileRouteTypes {
@@ -77,28 +95,42 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/admin-insumos'
     | '/admin-limpieza'
     | '/auth'
     | '/empleadas'
+    | '/insumos'
     | '/limpieza'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/admin-limpieza' | '/auth' | '/empleadas' | '/limpieza'
+  to:
+    | '/'
+    | '/admin'
+    | '/admin-insumos'
+    | '/admin-limpieza'
+    | '/auth'
+    | '/empleadas'
+    | '/insumos'
+    | '/limpieza'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/admin-insumos'
     | '/admin-limpieza'
     | '/auth'
     | '/empleadas'
+    | '/insumos'
     | '/limpieza'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AdminInsumosRoute: typeof AdminInsumosRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AuthRoute: typeof AuthRoute
   EmpleadasRoute: typeof EmpleadasRoute
+  InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
 }
 
@@ -109,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/limpieza'
       fullPath: '/limpieza'
       preLoaderRoute: typeof LimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insumos': {
+      id: '/insumos'
+      path: '/insumos'
+      fullPath: '/insumos'
+      preLoaderRoute: typeof InsumosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/empleadas': {
@@ -132,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLimpiezaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-insumos': {
+      id: '/admin-insumos'
+      path: '/admin-insumos'
+      fullPath: '/admin-insumos'
+      preLoaderRoute: typeof AdminInsumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -152,9 +198,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AdminInsumosRoute: AdminInsumosRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AuthRoute: AuthRoute,
   EmpleadasRoute: EmpleadasRoute,
+  InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
 }
 export const routeTree = rootRouteImport
