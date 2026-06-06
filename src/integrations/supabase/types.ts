@@ -188,6 +188,203 @@ export type Database = {
         }
         Relationships: []
       }
+      supplies: {
+        Row: {
+          active: boolean
+          category_id: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          reorder_days: number
+          stock_mina: number
+          stock_morelos: number
+          unit: string | null
+        }
+        Insert: {
+          active?: boolean
+          category_id: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          reorder_days?: number
+          stock_mina?: number
+          stock_morelos?: number
+          unit?: string | null
+        }
+        Update: {
+          active?: boolean
+          category_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          reorder_days?: number
+          stock_mina?: number
+          stock_morelos?: number
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplies_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "supply_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      supply_movements: {
+        Row: {
+          branch: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          quantity: number
+          request_id: string | null
+          supply_id: string
+          type: Database["public"]["Enums"]["supply_movement_type"]
+        }
+        Insert: {
+          branch: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          quantity: number
+          request_id?: string | null
+          supply_id: string
+          type: Database["public"]["Enums"]["supply_movement_type"]
+        }
+        Update: {
+          branch?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          quantity?: number
+          request_id?: string | null
+          supply_id?: string
+          type?: Database["public"]["Enums"]["supply_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_movements_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "supply_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_movements_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "supplies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supply_requests: {
+        Row: {
+          branch: string
+          client_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          delivered_at: string | null
+          employee_id: string
+          id: string
+          notes: string | null
+          owner_id: string
+          quantity: number
+          reason: Database["public"]["Enums"]["supply_reason"]
+          requested_at: string
+          status: Database["public"]["Enums"]["supply_status"]
+          supply_id: string
+        }
+        Insert: {
+          branch: string
+          client_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          delivered_at?: string | null
+          employee_id: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          quantity: number
+          reason?: Database["public"]["Enums"]["supply_reason"]
+          requested_at?: string
+          status?: Database["public"]["Enums"]["supply_status"]
+          supply_id: string
+        }
+        Update: {
+          branch?: string
+          client_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          delivered_at?: string | null
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          quantity?: number
+          reason?: Database["public"]["Enums"]["supply_reason"]
+          requested_at?: string
+          status?: Database["public"]["Enums"]["supply_status"]
+          supply_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_requests_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "supplies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           accuracy: number | null
@@ -251,6 +448,9 @@ export type Database = {
     Enums: {
       cleaning_frequency: "daily" | "weekly" | "monthly"
       entry_type: "clock_in" | "clock_out" | "break_start" | "break_end"
+      supply_movement_type: "entrada" | "salida" | "ajuste"
+      supply_reason: "terminado" | "queda_poco" | "danado" | "otro"
+      supply_status: "pendiente" | "aprobada" | "entregada" | "rechazada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -380,6 +580,9 @@ export const Constants = {
     Enums: {
       cleaning_frequency: ["daily", "weekly", "monthly"],
       entry_type: ["clock_in", "clock_out", "break_start", "break_end"],
+      supply_movement_type: ["entrada", "salida", "ajuste"],
+      supply_reason: ["terminado", "queda_poco", "danado", "otro"],
+      supply_status: ["pendiente", "aprobada", "entregada", "rechazada"],
     },
   },
 } as const
