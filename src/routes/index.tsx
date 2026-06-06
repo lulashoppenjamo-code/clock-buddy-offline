@@ -410,6 +410,11 @@ function Index() {
             ✨ Limpieza
           </Button>
         </Link>
+        <Link to="/insumos">
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
+            📦 Solicitar Insumos
+          </Button>
+        </Link>
         <Link to="/empleadas">
           <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
             <Settings className="h-4 w-4 mr-1" /> Empleadas
