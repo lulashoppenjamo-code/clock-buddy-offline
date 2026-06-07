@@ -18,12 +18,21 @@ import {
   Loader2,
   Check,
   X,
-  Truck,
   AlertTriangle,
   FileSpreadsheet,
   FileText,
   Plus,
+  Pencil,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { REASONS } from "@/lib/supplies";
+
 import { toast } from "sonner";
 import { AdminGate } from "@/components/AdminGate";
 import {
