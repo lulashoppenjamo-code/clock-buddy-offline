@@ -446,6 +446,24 @@ function RequestsTab({
     }
   }
 
+  async function delRequest(id: string) {
+    if (!confirm("¿Eliminar esta solicitud?")) return;
+    setBusyId(id);
+    try {
+      const { error } = await supabase
+        .from("supply_requests")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Solicitud eliminada");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const [editing, setEditing] = useState<Request | null>(null);
 
 
