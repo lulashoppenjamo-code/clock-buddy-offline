@@ -1124,9 +1124,18 @@ function CatalogTab({
                   {s.unit ?? "—"} · cada {s.reorder_days} días
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => toggleActive(s)}>
-                {s.active ? "Activo" : "Inactivo"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => toggleActive(s)}>
+                  {s.active ? "Activo" : "Inactivo"}
+                </Button>
+                <button
+                  onClick={() => delSupply(s.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar producto"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
