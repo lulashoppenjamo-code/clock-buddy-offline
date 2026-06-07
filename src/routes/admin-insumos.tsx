@@ -868,6 +868,13 @@ function InventoryTab({
                     {new Date(m.created_at).toLocaleString("es-MX")}
                   </p>
                 </div>
+                <button
+                  onClick={() => delMovement(m.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600 shrink-0"
+                  title="Eliminar movimiento"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </li>
             );
           })}
