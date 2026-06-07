@@ -23,6 +23,7 @@ import {
   FileText,
   Plus,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -445,6 +446,24 @@ function RequestsTab({
     }
   }
 
+  async function delRequest(id: string) {
+    if (!confirm("¿Eliminar esta solicitud?")) return;
+    setBusyId(id);
+    try {
+      const { error } = await supabase
+        .from("supply_requests")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Solicitud eliminada");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const [editing, setEditing] = useState<Request | null>(null);
 
 
@@ -650,6 +669,14 @@ function RequestsTab({
                 >
                   <Pencil className="h-4 w-4" /> Editar
                 </Button>
+                <button
+                  onClick={() => delRequest(r.id)}
+                  disabled={busyId === r.id}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           );
@@ -720,6 +747,21 @@ function InventoryTab({
       toast.error(e?.message ?? "Error");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function delMovement(id: string) {
+    if (!confirm("¿Eliminar este movimiento?")) return;
+    try {
+      const { error } = await supabase
+        .from("supply_movements")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Movimiento eliminado");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
     }
   }
 
@@ -826,6 +868,13 @@ function InventoryTab({
                     {new Date(m.created_at).toLocaleString("es-MX")}
                   </p>
                 </div>
+                <button
+                  onClick={() => delMovement(m.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600 shrink-0"
+                  title="Eliminar movimiento"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </li>
             );
           })}
@@ -974,6 +1023,26 @@ function CatalogTab({
     onChange();
   }
 
+  async function delSupply(id: string) {
+    if (!confirm("¿Eliminar este producto? Las solicitudes relacionadas no se borrarán.")) return;
+    const { error } = await supabase.from("supplies").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Producto eliminado");
+      onChange();
+    }
+  }
+
+  async function delCategory(id: string) {
+    if (!confirm("¿Eliminar esta categoría? Los productos asociados no se borrarán.")) return;
+    const { error } = await supabase.from("supply_categories").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Categoría eliminada");
+      onChange();
+    }
+  }
+
   return (
     <div className="space-y-3 mt-3">
       <Card className="p-3 space-y-2">
@@ -1021,13 +1090,22 @@ function CatalogTab({
               <span className={c.active ? "" : "text-muted-foreground"}>
                 {c.name}
               </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => toggleCategoryActive(c)}
-              >
-                {c.active ? "Activa" : "Inactiva"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleCategoryActive(c)}
+                >
+                  {c.active ? "Activa" : "Inactiva"}
+                </Button>
+                <button
+                  onClick={() => delCategory(c.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar categoría"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -1046,9 +1124,18 @@ function CatalogTab({
                   {s.unit ?? "—"} · cada {s.reorder_days} días
                 </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => toggleActive(s)}>
-                {s.active ? "Activo" : "Inactivo"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => toggleActive(s)}>
+                  {s.active ? "Activo" : "Inactivo"}
+                </Button>
+                <button
+                  onClick={() => delSupply(s.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar producto"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
