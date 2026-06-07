@@ -1023,6 +1023,26 @@ function CatalogTab({
     onChange();
   }
 
+  async function delSupply(id: string) {
+    if (!confirm("¿Eliminar este producto? Las solicitudes relacionadas no se borrarán.")) return;
+    const { error } = await supabase.from("supplies").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Producto eliminado");
+      onChange();
+    }
+  }
+
+  async function delCategory(id: string) {
+    if (!confirm("¿Eliminar esta categoría? Los productos asociados no se borrarán.")) return;
+    const { error } = await supabase.from("supply_categories").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Categoría eliminada");
+      onChange();
+    }
+  }
+
   return (
     <div className="space-y-3 mt-3">
       <Card className="p-3 space-y-2">
