@@ -1101,7 +1101,7 @@ function EditRequestDialog({
           supply_id: supplyId,
           branch,
           quantity: q,
-          reason,
+          reason: reason as "terminado" | "queda_poco" | "danado" | "otro",
           notes: notes || null,
         })
         .eq("id", request.id);
