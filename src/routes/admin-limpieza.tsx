@@ -235,6 +235,7 @@ function AdminLimpieza({ ownerId }: { ownerId: string }) {
             tasks={tasks}
             areas={areas}
             employees={employees}
+            reload={reload}
           />
         )}
       </div>
