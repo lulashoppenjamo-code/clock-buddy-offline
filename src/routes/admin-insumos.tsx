@@ -1056,3 +1056,142 @@ function CatalogTab({
     </div>
   );
 }
+
+/* ---------- EDIT REQUEST DIALOG ---------- */
+function EditRequestDialog({
+  request,
+  supplies,
+  onClose,
+  onSaved,
+}: {
+  request: Request | null;
+  supplies: Supply[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [supplyId, setSupplyId] = useState("");
+  const [branch, setBranch] = useState<Branch>("mina");
+  const [qty, setQty] = useState("1");
+  const [reason, setReason] = useState("terminado");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (request) {
+      setSupplyId(request.supply_id);
+      setBranch(request.branch as Branch);
+      setQty(String(request.quantity));
+      setReason(request.reason);
+      setNotes(request.notes ?? "");
+    }
+  }, [request]);
+
+  async function save() {
+    if (!request) return;
+    const q = Number(qty);
+    if (!supplyId || !Number.isFinite(q) || q <= 0) {
+      toast.error("Datos inválidos");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("supply_requests")
+        .update({
+          supply_id: supplyId,
+          branch,
+          quantity: q,
+          reason,
+          notes: notes || null,
+        })
+        .eq("id", request.id);
+      if (error) throw error;
+      toast.success("Solicitud actualizada");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!request} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar solicitud</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          {request && request.status !== "pendiente" && (
+            <div className="flex items-start gap-2 p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>
+                Esta solicitud ya fue procesada. Editar no modifica el
+                inventario ya ajustado.
+              </p>
+            </div>
+          )}
+          <Select value={supplyId} onValueChange={setSupplyId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Producto" />
+            </SelectTrigger>
+            <SelectContent>
+              {supplies.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={branch} onValueChange={(v) => setBranch(v as Branch)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              min="1"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+            />
+          </div>
+          <Select value={reason} onValueChange={setReason}>
+            <SelectTrigger>
+              <SelectValue placeholder="Motivo" />
+            </SelectTrigger>
+            <SelectContent>
+              {REASONS.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Textarea
+            rows={2}
+            placeholder="Observaciones"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
