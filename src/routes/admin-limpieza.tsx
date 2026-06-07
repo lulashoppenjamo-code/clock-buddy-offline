@@ -758,12 +758,14 @@ function HistoryTab({
   tasks,
   areas,
   employees,
+  reload,
 }: {
   ownerId: string;
   logs: LogRow[];
   tasks: Task[];
   areas: Area[];
   employees: Employee[];
+  reload: () => Promise<void>;
 }) {
   const [fEmp, setFEmp] = useState<string>("all");
   const [fBranch, setFBranch] = useState<string>("all");
@@ -792,6 +794,20 @@ function HistoryTab({
         }
       }
     }
+  }
+
+  async function del(id: string) {
+    if (!confirm("¿Eliminar este registro de limpieza?")) return;
+    const { error } = await supabase
+      .from("cleaning_logs")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Registro eliminado");
+    reload();
   }
 
   return (
@@ -925,6 +941,14 @@ function HistoryTab({
                       <MapPin className="h-3 w-3" /> Ver en mapa
                     </a>
                   )}
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => del(l.id)}
+                      className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Eliminar registro
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
