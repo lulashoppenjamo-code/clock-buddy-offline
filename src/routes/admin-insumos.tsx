@@ -397,27 +397,21 @@ function RequestsTab({
     );
   }
 
-  async function decide(
-    r: Request,
-    next: "aprobada" | "rechazada" | "entregada",
-  ) {
+  async function decide(r: Request, next: "aprobada" | "rechazada") {
     setBusyId(r.id);
     try {
-      const patch: any = { status: next };
-      if (next === "aprobada" || next === "rechazada") {
-        patch.decided_at = new Date().toISOString();
-        patch.decided_by = ownerId;
-      }
-      if (next === "entregada") {
-        patch.delivered_at = new Date().toISOString();
-      }
+      const patch: Record<string, unknown> = {
+        status: next,
+        decided_at: new Date().toISOString(),
+        decided_by: ownerId,
+      };
       const { error } = await supabase
         .from("supply_requests")
         .update(patch)
         .eq("id", r.id);
       if (error) throw error;
 
-      if (next === "entregada") {
+      if (next === "aprobada") {
         const sup = supplies.find((s) => s.id === r.supply_id);
         if (sup) {
           const stockField =
@@ -427,17 +421,17 @@ function RequestsTab({
           await supabase
             .from("supplies")
             .update({
-              [stockField]: Math.max(0, Number(current) - Number(r.quantity)),
+              [stockField]: Number(current) + Number(r.quantity),
             })
             .eq("id", sup.id);
           await supabase.from("supply_movements").insert({
             owner_id: ownerId,
             supply_id: sup.id,
             branch: r.branch,
-            type: "salida",
+            type: "entrada",
             quantity: r.quantity,
             request_id: r.id,
-            notes: "Entrega por solicitud",
+            notes: "Autorizada — suma a inventario",
             created_by: ownerId,
           });
         }
@@ -450,6 +444,9 @@ function RequestsTab({
       setBusyId(null);
     }
   }
+
+  const [editing, setEditing] = useState<Request | null>(null);
+
 
   function exportExcel() {
     const rows = filtered.map((r) => {
