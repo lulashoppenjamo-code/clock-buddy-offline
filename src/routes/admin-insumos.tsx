@@ -23,6 +23,7 @@ import {
   FileText,
   Plus,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
