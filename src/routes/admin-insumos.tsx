@@ -750,6 +750,21 @@ function InventoryTab({
     }
   }
 
+  async function delMovement(id: string) {
+    if (!confirm("¿Eliminar este movimiento?")) return;
+    try {
+      const { error } = await supabase
+        .from("supply_movements")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Movimiento eliminado");
+      onChange();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    }
+  }
+
   return (
     <div className="space-y-3 mt-3">
       <Card className="p-3 space-y-2">
