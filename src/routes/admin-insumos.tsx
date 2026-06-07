@@ -651,6 +651,14 @@ function RequestsTab({
                 >
                   <Pencil className="h-4 w-4" /> Editar
                 </Button>
+                <button
+                  onClick={() => delRequest(r.id)}
+                  disabled={busyId === r.id}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           );
