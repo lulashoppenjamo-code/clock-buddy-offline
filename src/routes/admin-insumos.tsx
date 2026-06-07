@@ -620,41 +620,52 @@ function RequestsTab({
                   </p>
                 </div>
               )}
-              {r.status === "pendiente" && (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    onClick={() => decide(r, "aprobada")}
-                    disabled={busyId === r.id}
-                  >
-                    <Check className="h-4 w-4" /> Aprobar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => decide(r, "rechazada")}
-                    disabled={busyId === r.id}
-                  >
-                    <X className="h-4 w-4" /> Rechazar
-                  </Button>
-                </div>
-              )}
-              {r.status === "aprobada" && (
+              <div className="flex gap-2 flex-wrap">
+                {r.status === "pendiente" && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={() => decide(r, "aprobada")}
+                      disabled={busyId === r.id}
+                    >
+                      <Check className="h-4 w-4" /> Autorizar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => decide(r, "rechazada")}
+                      disabled={busyId === r.id}
+                    >
+                      <X className="h-4 w-4" /> Rechazar
+                    </Button>
+                  </>
+                )}
                 <Button
                   size="sm"
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={() => decide(r, "entregada")}
+                  variant="outline"
+                  onClick={() => setEditing(r)}
                   disabled={busyId === r.id}
                 >
-                  <Truck className="h-4 w-4" /> Marcar entregada
+                  <Pencil className="h-4 w-4" /> Editar
                 </Button>
-              )}
+              </div>
             </div>
           );
         })}
       </Card>
+
+      <EditRequestDialog
+        request={editing}
+        supplies={supplies}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          onChange();
+        }}
+      />
+
     </div>
   );
 }
