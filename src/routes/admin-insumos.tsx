@@ -18,12 +18,21 @@ import {
   Loader2,
   Check,
   X,
-  Truck,
   AlertTriangle,
   FileSpreadsheet,
   FileText,
   Plus,
+  Pencil,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { REASONS } from "@/lib/supplies";
+
 import { toast } from "sonner";
 import { AdminGate } from "@/components/AdminGate";
 import {
@@ -388,27 +397,21 @@ function RequestsTab({
     );
   }
 
-  async function decide(
-    r: Request,
-    next: "aprobada" | "rechazada" | "entregada",
-  ) {
+  async function decide(r: Request, next: "aprobada" | "rechazada") {
     setBusyId(r.id);
     try {
-      const patch: any = { status: next };
-      if (next === "aprobada" || next === "rechazada") {
-        patch.decided_at = new Date().toISOString();
-        patch.decided_by = ownerId;
-      }
-      if (next === "entregada") {
-        patch.delivered_at = new Date().toISOString();
-      }
+      const patch: Record<string, unknown> = {
+        status: next,
+        decided_at: new Date().toISOString(),
+        decided_by: ownerId,
+      };
       const { error } = await supabase
         .from("supply_requests")
         .update(patch)
         .eq("id", r.id);
       if (error) throw error;
 
-      if (next === "entregada") {
+      if (next === "aprobada") {
         const sup = supplies.find((s) => s.id === r.supply_id);
         if (sup) {
           const stockField =
@@ -418,17 +421,17 @@ function RequestsTab({
           await supabase
             .from("supplies")
             .update({
-              [stockField]: Math.max(0, Number(current) - Number(r.quantity)),
+              [stockField]: Number(current) + Number(r.quantity),
             })
             .eq("id", sup.id);
           await supabase.from("supply_movements").insert({
             owner_id: ownerId,
             supply_id: sup.id,
             branch: r.branch,
-            type: "salida",
+            type: "entrada",
             quantity: r.quantity,
             request_id: r.id,
-            notes: "Entrega por solicitud",
+            notes: "Autorizada — suma a inventario",
             created_by: ownerId,
           });
         }
@@ -441,6 +444,9 @@ function RequestsTab({
       setBusyId(null);
     }
   }
+
+  const [editing, setEditing] = useState<Request | null>(null);
+
 
   function exportExcel() {
     const rows = filtered.map((r) => {
@@ -614,41 +620,52 @@ function RequestsTab({
                   </p>
                 </div>
               )}
-              {r.status === "pendiente" && (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    onClick={() => decide(r, "aprobada")}
-                    disabled={busyId === r.id}
-                  >
-                    <Check className="h-4 w-4" /> Aprobar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={() => decide(r, "rechazada")}
-                    disabled={busyId === r.id}
-                  >
-                    <X className="h-4 w-4" /> Rechazar
-                  </Button>
-                </div>
-              )}
-              {r.status === "aprobada" && (
+              <div className="flex gap-2 flex-wrap">
+                {r.status === "pendiente" && (
+                  <>
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      onClick={() => decide(r, "aprobada")}
+                      disabled={busyId === r.id}
+                    >
+                      <Check className="h-4 w-4" /> Autorizar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => decide(r, "rechazada")}
+                      disabled={busyId === r.id}
+                    >
+                      <X className="h-4 w-4" /> Rechazar
+                    </Button>
+                  </>
+                )}
                 <Button
                   size="sm"
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={() => decide(r, "entregada")}
+                  variant="outline"
+                  onClick={() => setEditing(r)}
                   disabled={busyId === r.id}
                 >
-                  <Truck className="h-4 w-4" /> Marcar entregada
+                  <Pencil className="h-4 w-4" /> Editar
                 </Button>
-              )}
+              </div>
             </div>
           );
         })}
       </Card>
+
+      <EditRequestDialog
+        request={editing}
+        supplies={supplies}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          onChange();
+        }}
+      />
+
     </div>
   );
 }
@@ -1039,3 +1056,142 @@ function CatalogTab({
     </div>
   );
 }
+
+/* ---------- EDIT REQUEST DIALOG ---------- */
+function EditRequestDialog({
+  request,
+  supplies,
+  onClose,
+  onSaved,
+}: {
+  request: Request | null;
+  supplies: Supply[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [supplyId, setSupplyId] = useState("");
+  const [branch, setBranch] = useState<Branch>("mina");
+  const [qty, setQty] = useState("1");
+  const [reason, setReason] = useState("terminado");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (request) {
+      setSupplyId(request.supply_id);
+      setBranch(request.branch as Branch);
+      setQty(String(request.quantity));
+      setReason(request.reason);
+      setNotes(request.notes ?? "");
+    }
+  }, [request]);
+
+  async function save() {
+    if (!request) return;
+    const q = Number(qty);
+    if (!supplyId || !Number.isFinite(q) || q <= 0) {
+      toast.error("Datos inválidos");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("supply_requests")
+        .update({
+          supply_id: supplyId,
+          branch,
+          quantity: q,
+          reason: reason as "terminado" | "queda_poco" | "danado" | "otro",
+          notes: notes || null,
+        })
+        .eq("id", request.id);
+      if (error) throw error;
+      toast.success("Solicitud actualizada");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={!!request} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar solicitud</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          {request && request.status !== "pendiente" && (
+            <div className="flex items-start gap-2 p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <p>
+                Esta solicitud ya fue procesada. Editar no modifica el
+                inventario ya ajustado.
+              </p>
+            </div>
+          )}
+          <Select value={supplyId} onValueChange={setSupplyId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Producto" />
+            </SelectTrigger>
+            <SelectContent>
+              {supplies.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={branch} onValueChange={(v) => setBranch(v as Branch)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              min="1"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+            />
+          </div>
+          <Select value={reason} onValueChange={setReason}>
+            <SelectTrigger>
+              <SelectValue placeholder="Motivo" />
+            </SelectTrigger>
+            <SelectContent>
+              {REASONS.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Textarea
+            rows={2}
+            placeholder="Observaciones"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
