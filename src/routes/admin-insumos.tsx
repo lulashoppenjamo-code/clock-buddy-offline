@@ -1090,13 +1090,22 @@ function CatalogTab({
               <span className={c.active ? "" : "text-muted-foreground"}>
                 {c.name}
               </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => toggleCategoryActive(c)}
-              >
-                {c.active ? "Activa" : "Inactiva"}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleCategoryActive(c)}
+                >
+                  {c.active ? "Activa" : "Inactiva"}
+                </Button>
+                <button
+                  onClick={() => delCategory(c.id)}
+                  className="p-1.5 text-muted-foreground hover:text-red-600"
+                  title="Eliminar categoría"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </li>
           ))}
         </ul>
