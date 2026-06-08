@@ -152,7 +152,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
 
   function exportCSV() {
     const empName = (id: string) => employees.find((e) => e.id === id)?.name ?? id;
-    const header = ["Empleada", "Tipo", "Fecha", "Hora", "Latitud", "Longitud", "Precisión (m)", "Mapa"];
+    const header = ["Colaborador", "Tipo", "Fecha", "Hora", "Latitud", "Longitud", "Precisión (m)", "Mapa"];
     const rows = filtered
       .slice()
       .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))
@@ -254,6 +254,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
           <Link to="/admin-insumos" className="block">
             <Button className="w-full bg-amber-600 hover:bg-amber-700">
               📦 Solicitudes de Insumos
+            </Button>
+          </Link>
+          <Link to="/admin-vacaciones" className="block">
+            <Button className="w-full bg-teal-600 hover:bg-teal-700">
+              🌴 Vacaciones
             </Button>
           </Link>
         </Card>

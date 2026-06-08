@@ -473,7 +473,7 @@ function RequestsTab({
       const emp = employees.find((e) => e.id === r.employee_id);
       return {
         Fecha: new Date(r.requested_at).toLocaleString("es-MX"),
-        Empleada: emp?.name ?? "",
+        Colaborador: emp?.name ?? "",
         Sucursal: branchName(r.branch),
         Producto: sup?.name ?? "",
         Cantidad: r.quantity,
@@ -494,7 +494,7 @@ function RequestsTab({
     doc.text("Solicitudes de Insumos", 14, 14);
     autoTable(doc, {
       startY: 20,
-      head: [["Fecha", "Empleada", "Sucursal", "Producto", "Cant", "Estado"]],
+      head: [["Fecha", "Colaborador", "Sucursal", "Producto", "Cant", "Estado"]],
       body: filtered.map((r) => {
         const sup = supplies.find((s) => s.id === r.supply_id);
         const emp = employees.find((e) => e.id === r.employee_id);
@@ -531,7 +531,7 @@ function RequestsTab({
           </Select>
           <Select value={empF} onValueChange={setEmpF}>
             <SelectTrigger>
-              <SelectValue placeholder="Empleada" />
+              <SelectValue placeholder="Colaborador" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
@@ -960,7 +960,7 @@ function HistoryTab({
               Frecuencia: {row.avgDays > 0 ? `cada ${row.avgDays} días` : "—"}
             </p>
             <p>Solicitudes: {row.count}</p>
-            <p>Top empleada: {row.topEmpName}</p>
+            <p>Top colaborador: {row.topEmpName}</p>
             <p>Top sucursal: {row.topBranchName}</p>
           </div>
         </Card>

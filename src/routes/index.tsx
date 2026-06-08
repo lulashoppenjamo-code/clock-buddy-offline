@@ -50,7 +50,7 @@ function Index() {
         if (mounted && savedUid) setOwnerId(savedUid);
       } catch {}
 
-      // 1) Mostrar empleadas cacheadas inmediatamente (camino offline)
+      // 1) Mostrar colaboradores cacheados inmediatamente (camino offline)
       try {
         const cached = await getCachedEmployees();
         if (mounted && cached.length) setEmployees(cached);
@@ -75,7 +75,7 @@ function Index() {
       }
       setLoading(false);
 
-      // 3) Si hay internet y sesión, refrescar empleadas desde servidor
+      // 3) Si hay internet y sesión, refrescar colaboradores desde servidor
       if (uid && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const { data: emps } = await supabase
@@ -261,10 +261,10 @@ function Index() {
         <Card className="p-6 space-y-4 max-w-sm">
           <h1 className="text-xl font-semibold">¡Bienvenida!</h1>
           <p className="text-sm text-muted-foreground">
-            Primero agrega a tus empleadas y asígnales un PIN de 4 dígitos.
+            Primero agrega a tus colaboradores y asígnales un PIN de 4 dígitos.
           </p>
           <Button className="w-full" onClick={() => navigate({ to: "/empleadas" })}>
-            Agregar empleadas
+            Agregar colaboradores
           </Button>
         </Card>
       </div>
@@ -415,9 +415,14 @@ function Index() {
             📦 Solicitar Insumos
           </Button>
         </Link>
+        <Link to="/vacaciones">
+          <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+            🌴 Vacaciones
+          </Button>
+        </Link>
         <Link to="/empleadas">
           <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
-            <Settings className="h-4 w-4 mr-1" /> Empleadas
+            <Settings className="h-4 w-4 mr-1" /> Colaboradores
           </Button>
         </Link>
         <Link to="/admin">
