@@ -152,7 +152,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
 
   function exportCSV() {
     const empName = (id: string) => employees.find((e) => e.id === id)?.name ?? id;
-    const header = ["Empleada", "Tipo", "Fecha", "Hora", "Latitud", "Longitud", "Precisión (m)", "Mapa"];
+    const header = ["Colaborador", "Tipo", "Fecha", "Hora", "Latitud", "Longitud", "Precisión (m)", "Mapa"];
     const rows = filtered
       .slice()
       .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))
