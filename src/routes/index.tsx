@@ -75,7 +75,7 @@ function Index() {
       }
       setLoading(false);
 
-      // 3) Si hay internet y sesión, refrescar empleadas desde servidor
+      // 3) Si hay internet y sesión, refrescar colaboradores desde servidor
       if (uid && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const { data: emps } = await supabase
