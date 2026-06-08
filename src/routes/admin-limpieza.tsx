@@ -340,7 +340,7 @@ function Dashboard({
       </Card>
 
       <Card className="p-4">
-        <p className="font-semibold text-sm mb-2">Top empleada (30 días)</p>
+        <p className="font-semibold text-sm mb-2">Top colaborador (30 días)</p>
         {topEmployee.employee ? (
           <div className="flex items-center gap-3">
             <div
@@ -820,7 +820,7 @@ function HistoryTab({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas las empleadas</SelectItem>
+              <SelectItem value="all">Todos los colaboradores</SelectItem>
               {employees.map((e) => (
                 <SelectItem key={e.id} value={e.id}>
                   {e.name}
@@ -891,7 +891,7 @@ function HistoryTab({
               {isOpen && (
                 <div className="px-3 pb-3 space-y-3 bg-emerald-50/40">
                   <p className="text-xs">
-                    <span className="font-semibold">Empleada:</span>{" "}
+                    <span className="font-semibold">Colaborador:</span>{" "}
                     {emp?.name ?? "—"}
                   </p>
                   {l.notes && (
