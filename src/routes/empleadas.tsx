@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Loader2, Edit2 } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/empleadas")({
   component: EmployeesRoute,
@@ -43,7 +45,15 @@ function EmployeesRoute() {
   );
 }
 
-type Employee = { id: string; name: string; pin: string; color: string; active: boolean };
+type Employee = {
+  id: string;
+  name: string;
+  pin: string;
+  color: string;
+  active: boolean;
+  hire_date: string | null;
+  branch: string | null;
+};
 
 const COLORS = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#06b6d4", "#8b5cf6"];
 const DEFAULTS = ["Leslie", "Ana", "Esmeralda"];
@@ -56,7 +66,10 @@ function EmployeesPage() {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [color, setColor] = useState(COLORS[0]);
+  const [hireDate, setHireDate] = useState("");
+  const [branch, setBranch] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState<Employee | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -81,8 +94,8 @@ function EmployeesPage() {
       toast.error(error.message);
       return;
     }
-    setEmployees(data ?? []);
-    await cacheEmployees((data ?? []).filter((e) => e.active));
+    setEmployees((data as any) ?? []);
+    await cacheEmployees(((data as any) ?? []).filter((e: Employee) => e.active));
   }
 
   async function addEmployee(e: React.FormEvent) {
@@ -93,9 +106,14 @@ function EmployeesPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("employees")
-      .insert({ owner_id: ownerId, name: name.trim(), pin, color });
+    const { error } = await supabase.from("employees").insert({
+      owner_id: ownerId,
+      name: name.trim(),
+      pin,
+      color,
+      hire_date: hireDate || null,
+      branch: branch || null,
+    });
     setSaving(false);
     if (error) {
       toast.error(error.message.includes("unique") ? "Ese PIN ya está en uso" : error.message);
@@ -103,8 +121,10 @@ function EmployeesPage() {
     }
     setName("");
     setPin("");
+    setHireDate("");
+    setBranch("");
     setColor(COLORS[(employees.length + 1) % COLORS.length]);
-    toast.success("Empleada agregada");
+    toast.success("Colaborador agregado");
     await load(ownerId);
   }
 
@@ -116,13 +136,13 @@ function EmployeesPage() {
 
   async function remove(id: string) {
     if (!ownerId) return;
-    if (!confirm("¿Eliminar esta empleada y todas sus checadas?")) return;
+    if (!confirm("¿Eliminar este colaborador y todas sus checadas?")) return;
     const { error } = await supabase.from("employees").delete().eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Eliminada");
+    toast.success("Eliminado");
     await load(ownerId);
   }
 
@@ -148,7 +168,7 @@ function EmployeesPage() {
         <Link to="/" className="flex items-center gap-1 text-sm">
           <ArrowLeft className="h-4 w-4" /> Volver
         </Link>
-        <h1 className="font-semibold">Empleadas</h1>
+        <h1 className="font-semibold">Colaboradores</h1>
         <button onClick={signOut} className="text-sm text-muted-foreground">
           Salir
         </button>
@@ -156,7 +176,7 @@ function EmployeesPage() {
 
       <div className="max-w-md mx-auto p-4 space-y-4">
         <Card className="p-4">
-          <h2 className="font-medium mb-3">Agregar empleada</h2>
+          <h2 className="font-medium mb-3">Agregar colaborador</h2>
           <form onSubmit={addEmployee} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="name">Nombre</Label>
@@ -195,6 +215,24 @@ function EmployeesPage() {
                 placeholder="0000"
               />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="hd">Fecha de ingreso</Label>
+                <Input id="hd" type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Sucursal</Label>
+                <Select value={branch} onValueChange={setBranch}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mina">Mina</SelectItem>
+                    <SelectItem value="morelos">Morelos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label>Color</Label>
               <div className="flex gap-2">
@@ -229,8 +267,17 @@ function EmployeesPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{e.name}</p>
-                <p className="text-xs text-muted-foreground">PIN: ••••</p>
+                <p className="text-xs text-muted-foreground">
+                  Ingreso: {e.hire_date ?? "—"} · {e.branch ?? "—"}
+                </p>
               </div>
+              <button
+                onClick={() => setEditing(e)}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label="Editar"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => remove(e.id)}
                 className="p-2 text-muted-foreground hover:text-destructive"
@@ -241,10 +288,110 @@ function EmployeesPage() {
             </Card>
           ))}
           {employees.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground py-6">Aún no hay empleadas</p>
+            <p className="text-center text-sm text-muted-foreground py-6">Aún no hay colaboradores</p>
           )}
         </div>
       </div>
+
+      {editing && (
+        <EditEmployeeDialog
+          employee={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            if (ownerId) load(ownerId);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function EditEmployeeDialog({
+  employee,
+  onClose,
+  onSaved,
+}: {
+  employee: Employee;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(employee.name);
+  const [pin, setPin] = useState(employee.pin);
+  const [hireDate, setHireDate] = useState(employee.hire_date ?? "");
+  const [branch, setBranch] = useState(employee.branch ?? "");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (!/^\d{4}$/.test(pin)) {
+      toast.error("PIN inválido");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase
+      .from("employees")
+      .update({
+        name: name.trim(),
+        pin,
+        hire_date: hireDate || null,
+        branch: branch || null,
+      })
+      .eq("id", employee.id);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Actualizado");
+    onSaved();
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar colaborador</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nombre</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <Label>PIN</Label>
+            <Input
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+            />
+          </div>
+          <div>
+            <Label>Fecha de ingreso</Label>
+            <Input type="date" value={hireDate} onChange={(e) => setHireDate(e.target.value)} />
+          </div>
+          <div>
+            <Label>Sucursal</Label>
+            <Select value={branch} onValueChange={setBranch}>
+              <SelectTrigger>
+                <SelectValue placeholder="—" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mina">Mina</SelectItem>
+                <SelectItem value="morelos">Morelos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
