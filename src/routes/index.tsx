@@ -50,7 +50,7 @@ function Index() {
         if (mounted && savedUid) setOwnerId(savedUid);
       } catch {}
 
-      // 1) Mostrar empleadas cacheadas inmediatamente (camino offline)
+      // 1) Mostrar colaboradores cacheados inmediatamente (camino offline)
       try {
         const cached = await getCachedEmployees();
         if (mounted && cached.length) setEmployees(cached);
