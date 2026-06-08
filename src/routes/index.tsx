@@ -261,10 +261,10 @@ function Index() {
         <Card className="p-6 space-y-4 max-w-sm">
           <h1 className="text-xl font-semibold">¡Bienvenida!</h1>
           <p className="text-sm text-muted-foreground">
-            Primero agrega a tus empleadas y asígnales un PIN de 4 dígitos.
+            Primero agrega a tus colaboradores y asígnales un PIN de 4 dígitos.
           </p>
           <Button className="w-full" onClick={() => navigate({ to: "/empleadas" })}>
-            Agregar empleadas
+            Agregar colaboradores
           </Button>
         </Card>
       </div>
