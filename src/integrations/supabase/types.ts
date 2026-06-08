@@ -161,8 +161,10 @@ export type Database = {
       employees: {
         Row: {
           active: boolean
+          branch: string | null
           color: string
           created_at: string
+          hire_date: string | null
           id: string
           name: string
           owner_id: string
@@ -170,8 +172,10 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          branch?: string | null
           color?: string
           created_at?: string
+          hire_date?: string | null
           id?: string
           name: string
           owner_id: string
@@ -179,8 +183,10 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          branch?: string | null
           color?: string
           created_at?: string
+          hire_date?: string | null
           id?: string
           name?: string
           owner_id?: string
@@ -438,6 +444,87 @@ export type Database = {
           },
         ]
       }
+      vacation_adjustments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days: number
+          employee_id: string
+          id: string
+          owner_id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days: number
+          employee_id: string
+          id?: string
+          owner_id: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      vacation_requests: {
+        Row: {
+          admin_comment: string | null
+          client_id: string
+          created_at: string
+          days_requested: number
+          decided_at: string | null
+          decided_by: string | null
+          employee_comment: string | null
+          employee_id: string
+          end_date: string
+          id: string
+          owner_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["vacation_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_comment?: string | null
+          client_id: string
+          created_at?: string
+          days_requested: number
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_comment?: string | null
+          employee_id: string
+          end_date: string
+          id?: string
+          owner_id: string
+          start_date: string
+          status?: Database["public"]["Enums"]["vacation_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_comment?: string | null
+          client_id?: string
+          created_at?: string
+          days_requested?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_comment?: string | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          owner_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["vacation_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -451,6 +538,7 @@ export type Database = {
       supply_movement_type: "entrada" | "salida" | "ajuste"
       supply_reason: "terminado" | "queda_poco" | "danado" | "otro"
       supply_status: "pendiente" | "aprobada" | "entregada" | "rechazada"
+      vacation_status: "pendiente" | "aprobada" | "rechazada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -583,6 +671,7 @@ export const Constants = {
       supply_movement_type: ["entrada", "salida", "ajuste"],
       supply_reason: ["terminado", "queda_poco", "danado", "otro"],
       supply_status: ["pendiente", "aprobada", "entregada", "rechazada"],
+      vacation_status: ["pendiente", "aprobada", "rechazada"],
     },
   },
 } as const

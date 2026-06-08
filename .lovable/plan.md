@@ -1,62 +1,105 @@
-## Módulo "Solicitud de Insumos de Limpieza"
+## Cambios solicitados
 
-Reutiliza empleados, PINs, sucursales (`mina` / `morelos`) y el patrón de cola offline del módulo de Limpieza.
+### A. Renombrar "Empleadas/Empleada" → "Colaboradores/Colaborador"
 
-### 1. Base de datos (migración)
+Cambios sólo de texto en la UI (no cambia tablas ni rutas internas para no romper datos existentes):
 
-Nuevas tablas en `public` con RLS por `owner_id` + GRANTs:
+- `src/routes/empleadas.tsx`: títulos, botones y mensajes pasan a "Colaboradores", "Agregar colaborador", "colaborador eliminado", etc.
+- `src/routes/index.tsx`: botón "Empleadas" → "Colaboradores".
+- `src/routes/admin.tsx`: enlaces y títulos que digan "empleadas" → "colaboradores".
+- `src/routes/admin-limpieza.tsx` y `src/routes/admin-insumos.tsx`: filtros/etiquetas "Empleada" → "Colaborador".
 
-- **`supply_categories`** — `id, owner_id, name, slug, active` 
-  (semillas: `limpieza`. Preparado para `papeleria`, `cafeteria`, `unas`, `herramientas`, `mantenimiento`)
-- **`supplies`** — `id, owner_id, category_id, name, unit, reorder_days, stock, active`
-  (semillas: cloro 1L, fabuloso 4L, jabón polvo 500g, papel higiénico 4 rollos, escoba, trapeador, recogedor, franela)
-- **`supply_requests`** — `id, owner_id, employee_id, branch, supply_id, quantity, reason ('terminado'|'queda_poco'|'danado'|'otro'), notes, status ('pendiente'|'aprobada'|'entregada'|'rechazada'), requested_at, decided_at, decided_by, delivered_at, client_id`
-- **`supply_movements`** — `id, owner_id, supply_id, branch, type ('entrada'|'salida'|'ajuste'), quantity, request_id (nullable), notes, created_by, created_at`
+La ruta `/empleadas` y la tabla `employees` se mantienen como están (sin migración).
 
-Realtime habilitado en `supply_requests` y `supply_movements` (ADD TABLE supabase_realtime).
+---
 
-### 2. UI Empleados (`src/routes/insumos.tsx`)
+### B. Nuevo módulo "Vacaciones"
 
-- Botón nuevo en `index.tsx`: **"📦 Solicitar Insumos"** (pide PIN igual que Limpieza).
-- Selector de sucursal (Mina/Morelos).
-- Lista de productos agrupados por categoría (sólo Limpieza visible por ahora, las demás categorías quedan estructuradas pero ocultas).
-- Por producto: cantidad, motivo (select), observaciones.
-- Botón "Enviar solicitud" → inserta en `supply_requests` con `status='pendiente'` (cola offline si no hay internet).
-- Pantalla "Mis solicitudes" con estado en vivo.
+#### 1. Base de datos (migración)
 
-### 3. Panel admin (`src/routes/admin-insumos.tsx`)
+Agregar a la tabla `employees`:
+- `hire_date` (date, nullable) — fecha de ingreso del colaborador.
+- `branch` (text, nullable) — sucursal base (`mina` | `morelos`) opcional.
+
+Nuevas tablas en `public` con RLS por `owner_id` (+ GRANTs a `authenticated` y `service_role`):
+
+**`vacation_requests`**
+- `id, owner_id, employee_id, client_id (idempotencia offline)`
+- `start_date, end_date, days_requested (int)`
+- `status` enum (`pendiente` | `aprobada` | `rechazada`)
+- `employee_comment, admin_comment`
+- `decided_by, decided_at`
+- `created_at, updated_at`
+
+**`vacation_adjustments`** (ajustes manuales del admin: bonos, descuentos)
+- `id, owner_id, employee_id, days (numeric, +/-), reason, created_by, created_at`
+
+Realtime ADD TABLE para `vacation_requests`.
+
+#### 2. Lógica de saldos (`src/lib/vacations.ts`)
+
+Función `computeBalance(hireDate, today)` con las reglas:
+- Antigüedad < 1 año → **0 días**.
+- Antigüedad ≥ 1 año y < 2 → **7 días**.
+- Antigüedad ≥ 2 años → **14 días** (tope anual).
+- Devuelve `{ antiguedad_anios, asignados, usados, ajustes, disponibles }`.
+
+`usados` = suma de `days_requested` de solicitudes `aprobada` del año vigente de servicio.
+`ajustes` = suma de `vacation_adjustments`.
+
+Helper `daysBetween(start, end)` cuenta días naturales inclusive.
+
+#### 3. UI Colaborador (`src/routes/vacaciones.tsx`)
+
+Botón nuevo en `index.tsx`: **"🌴 Vacaciones"** (pide PIN como Limpieza/Insumos).
+
+Pantalla con dos pestañas:
+- **Nueva solicitud**: muestra antigüedad, días disponibles/usados, date pickers (inicio/fin), cálculo automático de días, comentario opcional, botón "Enviar". Valida: fin ≥ inicio, días ≤ disponibles, no fechas pasadas.
+- **Mis solicitudes**: lista en tiempo real con estado, comentarios del admin, fechas.
+
+Si el colaborador no tiene `hire_date` configurada → mensaje "Pide al administrador que registre tu fecha de ingreso".
+
+#### 4. Panel admin (`src/routes/admin-vacaciones.tsx`)
 
 Pestañas:
-- **Solicitudes**: tabla con filtros (sucursal, empleado, fechas, estado). Acciones por fila: Aprobar / Rechazar / Marcar entregada. Al entregar genera `supply_movement` tipo `salida` y descuenta `stock`.
-- **Inventario**: lista de productos con stock por sucursal, botón "Entrada" (suma stock + movimiento), historial de movimientos.
-- **Historial por producto**: último pedido, frecuencia (días promedio), total por mes, top empleado, top sucursal.
-- **Dashboard**: cards con productos más consumidos, consumo mensual por sucursal, conteos por estado.
-- **Catálogo**: CRUD de productos y categorías (preparado para futuras categorías).
 
-### 4. Alertas inteligentes
+- **Solicitudes**: tabla con filtros (colaborador, sucursal, estado, rango de fechas). Acciones: Aprobar / Rechazar (con comentario obligatorio en rechazo), Editar (fechas/días) y Eliminar.
+- **Saldos**: tabla con cada colaborador, fecha de ingreso, antigüedad, asignados, usados, ajustes, disponibles. Botón "Ajustar" para agregar `vacation_adjustment` (+/- días con motivo).
+- **Calendario**: vista mensual con vacaciones aprobadas pintadas por color del colaborador (filtro por sucursal).
+- **Historial**: log de todas las solicitudes con auditoría (quién autorizó, cuándo).
+- **Exportar**: Excel y PDF (reutilizando `xlsx` + `jspdf` ya instalados).
 
-Al aprobar/listar una solicitud, comparar `requested_at` contra el último pedido aprobado del mismo producto+sucursal. Si `días < reorder_days`, badge amarillo:
-> "El último pedido de cloro fue hace 8 días. Verifique antes de aprobar."
+En `empleadas.tsx` añadir campos opcionales **Fecha de ingreso** y **Sucursal** al formulario y a la edición.
 
-`reorder_days` configurable por producto (default 14).
+#### 5. Sincronización en tiempo real
 
-### 5. Reportes
+Canal `vacation_requests` en panel admin y pantalla "Mis solicitudes" del colaborador.
 
-- Exportar Excel (SheetJS `xlsx`) y PDF (`jspdf` + `jspdf-autotable`) desde la tabla filtrada de solicitudes y desde el dashboard.
+#### 6. Offline
 
-### 6. Sincronización en tiempo real
+`vacation_requests` se insertan directo (requiere internet). Se valida `navigator.onLine` y se muestra aviso si no hay conexión.
 
-`supabase.channel('supply_requests').on('postgres_changes', ...)` en el panel admin y en "Mis solicitudes" del empleado.
-
-### 7. Offline
-
-Extender `offline-queue.ts` con store `supply_requests` y `sync.ts` para subirlas con idempotencia por `client_id`.
+---
 
 ### Archivos
 
-**Crear**: migración SQL, `src/lib/supplies.ts`, `src/routes/insumos.tsx`, `src/routes/admin-insumos.tsx`.
-**Modificar**: `src/routes/index.tsx` (botón), `src/routes/admin.tsx` (link al panel), `src/lib/sync.ts` y `offline-queue.ts` (cola), `src/integrations/supabase/types.ts` (auto).
+**Crear**:
+- migración SQL (employees +columnas, vacation_requests, vacation_adjustments, enums, realtime)
+- `src/lib/vacations.ts`
+- `src/routes/vacaciones.tsx`
+- `src/routes/admin-vacaciones.tsx`
 
-**Dependencias nuevas**: `xlsx`, `jspdf`, `jspdf-autotable`.
+**Modificar**:
+- `src/routes/index.tsx` (botón Vacaciones + rename Empleadas→Colaboradores)
+- `src/routes/admin.tsx` (link al panel + rename)
+- `src/routes/empleadas.tsx` (rename UI + campos hire_date/branch)
+- `src/routes/admin-limpieza.tsx`, `src/routes/admin-insumos.tsx` (rename UI)
+- `src/integrations/supabase/types.ts` (auto tras migración)
+
+---
+
+### Notas
+
+Tu mensaje quedó cortado en "**5. CONTROL DE SALDOS — Crear una tabla automática para cada colaborador con: -**". Asumí los campos estándar (asignados / usados / ajustes / disponibles / antigüedad). Si querías incluir algún otro campo en la tabla de saldos, dímelo antes de aprobar y lo agrego.
 
 ¿Apruebas para empezar?
