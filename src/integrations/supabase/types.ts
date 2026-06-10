@@ -194,6 +194,600 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_alerts: {
+        Row: {
+          branch: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["alert_kind"]
+          message: string
+          owner_id: string
+          product_id: string | null
+          read_at: string | null
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["alert_kind"]
+          message: string
+          owner_id: string
+          product_id?: string | null
+          read_at?: string | null
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["alert_kind"]
+          message?: string
+          owner_id?: string
+          product_id?: string | null
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_audit_log: {
+        Row: {
+          action: string
+          actor_employee_id: string | null
+          after: Json | null
+          before: Json | null
+          branch: string | null
+          created_at: string
+          device_label: string | null
+          entity: string
+          entity_id: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_employee_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          branch?: string | null
+          created_at?: string
+          device_label?: string | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_employee_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          branch?: string | null
+          created_at?: string
+          device_label?: string | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_audit_log_actor_employee_id_fkey"
+            columns: ["actor_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_count_items: {
+        Row: {
+          count_id: string
+          difference: number | null
+          id: string
+          product_id: string
+          qty_physical: number | null
+          qty_theoretical: number
+          value_difference: number | null
+        }
+        Insert: {
+          count_id: string
+          difference?: number | null
+          id?: string
+          product_id: string
+          qty_physical?: number | null
+          qty_theoretical?: number
+          value_difference?: number | null
+        }
+        Update: {
+          count_id?: string
+          difference?: number | null
+          id?: string
+          product_id?: string
+          qty_physical?: number | null
+          qty_theoretical?: number
+          value_difference?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_count_items_count_id_fkey"
+            columns: ["count_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_count_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_counts: {
+        Row: {
+          area: string | null
+          branch: string
+          closed_at: string | null
+          created_at: string
+          frequency: Database["public"]["Enums"]["count_frequency"]
+          id: string
+          notes: string | null
+          owner_id: string
+          responsible_employee_id: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["count_status"]
+        }
+        Insert: {
+          area?: string | null
+          branch: string
+          closed_at?: string | null
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["count_frequency"]
+          id?: string
+          notes?: string | null
+          owner_id: string
+          responsible_employee_id?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["count_status"]
+        }
+        Update: {
+          area?: string | null
+          branch?: string
+          closed_at?: string | null
+          created_at?: string
+          frequency?: Database["public"]["Enums"]["count_frequency"]
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          responsible_employee_id?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["count_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_counts_responsible_employee_id_fkey"
+            columns: ["responsible_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          area: string | null
+          authorized_by: string | null
+          branch: string
+          created_at: string
+          device_label: string | null
+          employee_id: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          owner_id: string
+          product_id: string
+          qty_after: number
+          qty_before: number
+          quantity: number
+          reason: string | null
+          transfer_id: string | null
+          type: Database["public"]["Enums"]["inventory_movement_type"]
+        }
+        Insert: {
+          area?: string | null
+          authorized_by?: string | null
+          branch: string
+          created_at?: string
+          device_label?: string | null
+          employee_id?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_id: string
+          product_id: string
+          qty_after?: number
+          qty_before?: number
+          quantity: number
+          reason?: string | null
+          transfer_id?: string | null
+          type: Database["public"]["Enums"]["inventory_movement_type"]
+        }
+        Update: {
+          area?: string | null
+          authorized_by?: string | null
+          branch?: string
+          created_at?: string
+          device_label?: string | null
+          employee_id?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          owner_id?: string
+          product_id?: string
+          qty_after?: number
+          qty_before?: number
+          quantity?: number
+          reason?: string | null
+          transfer_id?: string | null
+          type?: Database["public"]["Enums"]["inventory_movement_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_authorized_by_fkey"
+            columns: ["authorized_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_stock: {
+        Row: {
+          branch: string
+          id: string
+          owner_id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          branch: string
+          id?: string
+          owner_id: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          branch?: string
+          id?: string
+          owner_id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transfer_items: {
+        Row: {
+          difference_reason: string | null
+          id: string
+          product_id: string
+          qty_after: number | null
+          qty_before: number | null
+          qty_received: number | null
+          qty_sent: number
+          transfer_id: string
+        }
+        Insert: {
+          difference_reason?: string | null
+          id?: string
+          product_id: string
+          qty_after?: number | null
+          qty_before?: number | null
+          qty_received?: number | null
+          qty_sent: number
+          transfer_id: string
+        }
+        Update: {
+          difference_reason?: string | null
+          id?: string
+          product_id?: string
+          qty_after?: number | null
+          qty_before?: number | null
+          qty_received?: number | null
+          qty_sent?: number
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transfer_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfer_items_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transfer_photos: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          photo_path: string
+          transfer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          photo_path: string
+          transfer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          photo_path?: string
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transfer_photos_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transfers: {
+        Row: {
+          authorized_by: string | null
+          created_at: string
+          dest_branch: string
+          folio: string
+          id: string
+          notes: string | null
+          origin_branch: string
+          owner_id: string
+          reason: string | null
+          received_at: string | null
+          received_by: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: Database["public"]["Enums"]["transfer_status"]
+          updated_at: string
+        }
+        Insert: {
+          authorized_by?: string | null
+          created_at?: string
+          dest_branch: string
+          folio: string
+          id?: string
+          notes?: string | null
+          origin_branch: string
+          owner_id: string
+          reason?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          updated_at?: string
+        }
+        Update: {
+          authorized_by?: string | null
+          created_at?: string
+          dest_branch?: string
+          folio?: string
+          id?: string
+          notes?: string | null
+          origin_branch?: string
+          owner_id?: string
+          reason?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: Database["public"]["Enums"]["transfer_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transfers_authorized_by_fkey"
+            columns: ["authorized_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transfers_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          active: boolean
+          barcode: string | null
+          brand: string | null
+          category_id: string | null
+          cost: number
+          created_at: string
+          description: string | null
+          id: string
+          internal_code: string
+          name: string
+          owner_id: string
+          photo_path: string | null
+          price: number
+          stock_max: number
+          stock_min: number
+          supplier_id: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          barcode?: string | null
+          brand?: string | null
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          internal_code: string
+          name: string
+          owner_id: string
+          photo_path?: string | null
+          price?: number
+          stock_max?: number
+          stock_min?: number
+          supplier_id?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          barcode?: string | null
+          brand?: string | null
+          category_id?: string | null
+          cost?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          internal_code?: string
+          name?: string
+          owner_id?: string
+          photo_path?: string | null
+          price?: number
+          stock_max?: number
+          stock_min?: number
+          supplier_id?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
       supplies: {
         Row: {
           active: boolean
@@ -533,11 +1127,29 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      alert_kind: "stock_min" | "agotado" | "diferencia" | "traspaso" | "ajuste"
       cleaning_frequency: "daily" | "weekly" | "monthly"
+      count_frequency: "manual" | "diario" | "semanal" | "mensual"
+      count_status: "abierto" | "cerrado"
       entry_type: "clock_in" | "clock_out" | "break_start" | "break_end"
+      inventory_movement_type:
+        | "entrada"
+        | "salida"
+        | "ajuste"
+        | "consumo"
+        | "traspaso_out"
+        | "traspaso_in"
+        | "correccion"
       supply_movement_type: "entrada" | "salida" | "ajuste"
       supply_reason: "terminado" | "queda_poco" | "danado" | "otro"
       supply_status: "pendiente" | "aprobada" | "entregada" | "rechazada"
+      transfer_status:
+        | "pendiente"
+        | "autorizado"
+        | "en_transito"
+        | "recibido"
+        | "recibido_diferencias"
+        | "cancelado"
       vacation_status: "pendiente" | "aprobada" | "rechazada"
     }
     CompositeTypes: {
@@ -666,11 +1278,31 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_kind: ["stock_min", "agotado", "diferencia", "traspaso", "ajuste"],
       cleaning_frequency: ["daily", "weekly", "monthly"],
+      count_frequency: ["manual", "diario", "semanal", "mensual"],
+      count_status: ["abierto", "cerrado"],
       entry_type: ["clock_in", "clock_out", "break_start", "break_end"],
+      inventory_movement_type: [
+        "entrada",
+        "salida",
+        "ajuste",
+        "consumo",
+        "traspaso_out",
+        "traspaso_in",
+        "correccion",
+      ],
       supply_movement_type: ["entrada", "salida", "ajuste"],
       supply_reason: ["terminado", "queda_poco", "danado", "otro"],
       supply_status: ["pendiente", "aprobada", "entregada", "rechazada"],
+      transfer_status: [
+        "pendiente",
+        "autorizado",
+        "en_transito",
+        "recibido",
+        "recibido_diferencias",
+        "cancelado",
+      ],
       vacation_status: ["pendiente", "aprobada", "rechazada"],
     },
   },

@@ -261,6 +261,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               🌴 Vacaciones
             </Button>
           </Link>
+          <Link to="/admin-inventario" className="block">
+            <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+              📋 Inventario
+            </Button>
+          </Link>
         </Card>
 
         <div className="grid grid-cols-2 gap-2">
