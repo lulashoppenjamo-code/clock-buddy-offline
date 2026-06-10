@@ -1,105 +1,107 @@
-## Cambios solicitados
+# Plan: Módulo Empresarial de Inventarios
 
-### A. Renombrar "Empleadas/Empleada" → "Colaboradores/Colaborador"
+Este es un módulo grande. Propongo construirlo en **fases incrementales** para entregar valor rápido y validar contigo antes de seguir.
 
-Cambios sólo de texto en la UI (no cambia tablas ni rutas internas para no romper datos existentes):
+## Alcance global
 
-- `src/routes/empleadas.tsx`: títulos, botones y mensajes pasan a "Colaboradores", "Agregar colaborador", "colaborador eliminado", etc.
-- `src/routes/index.tsx`: botón "Empleadas" → "Colaboradores".
-- `src/routes/admin.tsx`: enlaces y títulos que digan "empleadas" → "colaboradores".
-- `src/routes/admin-limpieza.tsx` y `src/routes/admin-insumos.tsx`: filtros/etiquetas "Empleada" → "Colaborador".
+Sistema de inventario multi-sucursal (Mina / Morelos) integrado al reloj checador, con catálogo central, movimientos auditables, traspasos con recepción, conteos físicos, consumo por área, códigos de barras, dashboard y reportes.
 
-La ruta `/empleadas` y la tabla `employees` se mantienen como están (sin migración).
+## Arquitectura
 
----
+- **Base de datos** (Lovable Cloud / Postgres) con Realtime activo en tablas clave.
+- **Frontend**: módulo `/inventario` (colaborador, PIN) y `/admin-inventario` (administrador, candado existente).
+- **Integración con reloj checador**: cada movimiento guarda `employee_id`, `branch`, `device_label`, `latitude/longitude`, `created_at`, igual que `time_entries`.
+- **Auditoría**: tabla `inventory_audit_log` inmutable (sin UPDATE/DELETE en políticas RLS).
+- **Reportes**: Excel con `xlsx` y PDF con `jspdf` (ya instalados).
+- **Códigos de barras**: input con autofocus que captura lectores USB/Bluetooth HID (se comportan como teclado). Búsqueda por `barcode`, `internal_code` o nombre.
 
-### B. Nuevo módulo "Vacaciones"
+## Modelo de datos (nuevas tablas)
 
-#### 1. Base de datos (migración)
+```text
+products
+  id, internal_code (uniq), barcode (uniq null), name, description,
+  category_id, brand, unit, cost, price, stock_min, stock_max,
+  supplier_id, photo_path, active, owner_id, created_at, updated_at
 
-Agregar a la tabla `employees`:
-- `hire_date` (date, nullable) — fecha de ingreso del colaborador.
-- `branch` (text, nullable) — sucursal base (`mina` | `morelos`) opcional.
+product_categories  (id, name, slug, owner_id, active)
+suppliers           (id, name, phone, email, notes, owner_id, active)
 
-Nuevas tablas en `public` con RLS por `owner_id` (+ GRANTs a `authenticated` y `service_role`):
+inventory_stock          -- existencia por sucursal
+  id, product_id, branch, quantity, updated_at, owner_id
+  UNIQUE(product_id, branch)
 
-**`vacation_requests`**
-- `id, owner_id, employee_id, client_id (idempotencia offline)`
-- `start_date, end_date, days_requested (int)`
-- `status` enum (`pendiente` | `aprobada` | `rechazada`)
-- `employee_comment, admin_comment`
-- `decided_by, decided_at`
-- `created_at, updated_at`
+inventory_movements      -- entradas/salidas/ajustes/consumo
+  id, product_id, branch, type (entrada|salida|ajuste|consumo|traspaso_out|traspaso_in|correccion),
+  quantity, qty_before, qty_after, reason, area, employee_id,
+  authorized_by, transfer_id, device_label, latitude, longitude,
+  owner_id, created_at
 
-**`vacation_adjustments`** (ajustes manuales del admin: bonos, descuentos)
-- `id, owner_id, employee_id, days (numeric, +/-), reason, created_by, created_at`
+inventory_transfers      -- traspasos
+  id, folio (auto), origin_branch, dest_branch, status (pendiente|autorizado|en_transito|recibido|recibido_diferencias|cancelado),
+  sent_by, authorized_by, received_by, sent_at, received_at,
+  reason, notes, sender_pin_employee_id, receiver_pin_employee_id,
+  owner_id, created_at, updated_at
 
-Realtime ADD TABLE para `vacation_requests`.
+inventory_transfer_items
+  id, transfer_id, product_id, qty_sent, qty_received, qty_before, qty_after,
+  difference_reason
 
-#### 2. Lógica de saldos (`src/lib/vacations.ts`)
+inventory_transfer_photos
+  id, transfer_id, kind (envio|recepcion|dano|diferencia), photo_path, created_at
 
-Función `computeBalance(hireDate, today)` con las reglas:
-- Antigüedad < 1 año → **0 días**.
-- Antigüedad ≥ 1 año y < 2 → **7 días**.
-- Antigüedad ≥ 2 años → **14 días** (tope anual).
-- Devuelve `{ antiguedad_anios, asignados, usados, ajustes, disponibles }`.
+inventory_counts         -- conteos físicos / cíclicos
+  id, branch, area, status (abierto|cerrado), scheduled_for, frequency (manual|diario|semanal|mensual),
+  responsible_employee_id, notes, owner_id, created_at, closed_at
 
-`usados` = suma de `days_requested` de solicitudes `aprobada` del año vigente de servicio.
-`ajustes` = suma de `vacation_adjustments`.
+inventory_count_items
+  id, count_id, product_id, qty_theoretical, qty_physical, difference, value_difference
 
-Helper `daysBetween(start, end)` cuenta días naturales inclusive.
+inventory_audit_log      -- inmutable
+  id, actor_employee_id, action, entity, entity_id, before (jsonb), after (jsonb),
+  branch, device_label, created_at
 
-#### 3. UI Colaborador (`src/routes/vacaciones.tsx`)
+inventory_alerts
+  id, kind (stock_min|agotado|diferencia|traspaso|ajuste), product_id, branch,
+  message, read_at, created_at
+```
 
-Botón nuevo en `index.tsx`: **"🌴 Vacaciones"** (pide PIN como Limpieza/Insumos).
+Todas con RLS, GRANT a authenticated, índices en `product_id`, `branch`, `created_at`, y Realtime en `products`, `inventory_stock`, `inventory_movements`, `inventory_transfers`, `inventory_alerts`.
 
-Pantalla con dos pestañas:
-- **Nueva solicitud**: muestra antigüedad, días disponibles/usados, date pickers (inicio/fin), cálculo automático de días, comentario opcional, botón "Enviar". Valida: fin ≥ inicio, días ≤ disponibles, no fechas pasadas.
-- **Mis solicitudes**: lista en tiempo real con estado, comentarios del admin, fechas.
+Trigger `update_stock_on_movement` que ajusta `inventory_stock` y escribe a `inventory_audit_log` automáticamente.
 
-Si el colaborador no tiene `hire_date` configurada → mensaje "Pide al administrador que registre tu fecha de ingreso".
+## Fases propuestas
 
-#### 4. Panel admin (`src/routes/admin-vacaciones.tsx`)
+### Fase 1 — Núcleo (lo construyo ahora si lo apruebas)
+1. Migración completa con todas las tablas, triggers, RLS, Realtime.
+2. Catálogo de productos (admin): CRUD, categorías, proveedores, foto, código de barras, importar Excel/CSV, exportar.
+3. Existencias por sucursal + búsqueda con lector de códigos de barras.
+4. Movimientos básicos: entrada, salida, ajuste, consumo por área — con PIN del colaborador, registro de sucursal/dispositivo/ubicación.
+5. Alertas de stock mínimo y agotado.
 
-Pestañas:
+### Fase 2 — Traspasos
+6. Crear traspaso (origen → destino) con folio, PIN del que envía, fotos, descuento automático.
+7. Recepción con PIN, fotos, validación de cantidades, generación de incidencias por diferencias.
+8. Estados completos y notificaciones al admin.
 
-- **Solicitudes**: tabla con filtros (colaborador, sucursal, estado, rango de fechas). Acciones: Aprobar / Rechazar (con comentario obligatorio en rechazo), Editar (fechas/días) y Eliminar.
-- **Saldos**: tabla con cada colaborador, fecha de ingreso, antigüedad, asignados, usados, ajustes, disponibles. Botón "Ajustar" para agregar `vacation_adjustment` (+/- días con motivo).
-- **Calendario**: vista mensual con vacaciones aprobadas pintadas por color del colaborador (filtro por sucursal).
-- **Historial**: log de todas las solicitudes con auditoría (quién autorizó, cuándo).
-- **Exportar**: Excel y PDF (reutilizando `xlsx` + `jspdf` ya instalados).
+### Fase 3 — Conteos físicos y cíclicos
+9. Iniciar conteo por sucursal/área, capturar físico con lector, cierre y reporte de diferencias valorizadas.
+10. Programación de conteos cíclicos (diario/semanal/mensual) con % de avance.
 
-En `empleadas.tsx` añadir campos opcionales **Fecha de ingreso** y **Sucursal** al formulario y a la edición.
+### Fase 4 — Dashboard, reportes y auditoría
+11. Dashboard ejecutivo con KPIs en tiempo real.
+12. Reportes filtrables Excel/PDF de todo (inventario, movimientos, traspasos, conteos, consumo por área).
+13. Vista de bitácora completa para el admin.
 
-#### 5. Sincronización en tiempo real
+### Fase 5 — Pulidos
+14. Importación masiva con validación de duplicados y errores.
+15. Respaldo manual (export total JSON) — el respaldo automático ya lo hace Lovable Cloud.
+16. Confirmaciones obligatorias para acciones críticas.
 
-Canal `vacation_requests` en panel admin y pantalla "Mis solicitudes" del colaborador.
+## Preguntas antes de empezar
 
-#### 6. Offline
+1. ¿Construyo **Fase 1 ahora** y vamos validando antes de seguir, o prefieres que avance fases 1–3 de corrido sin pausa?
+2. ¿La **foto del producto** y las **fotos de traspaso** las quieres en el bucket existente `checador-photos`, o creo uno nuevo `inventory-photos`?
+3. ¿Los **colaboradores** identifican movimientos con su **PIN del reloj checador** (mismo flujo que limpieza/insumos), correcto?
+4. ¿El **costo y precio** los maneja la empresa en **MXN** y un solo nivel de precio (no listas por sucursal), correcto?
 
-`vacation_requests` se insertan directo (requiere internet). Se valida `navigator.onLine` y se muestra aviso si no hay conexión.
-
----
-
-### Archivos
-
-**Crear**:
-- migración SQL (employees +columnas, vacation_requests, vacation_adjustments, enums, realtime)
-- `src/lib/vacations.ts`
-- `src/routes/vacaciones.tsx`
-- `src/routes/admin-vacaciones.tsx`
-
-**Modificar**:
-- `src/routes/index.tsx` (botón Vacaciones + rename Empleadas→Colaboradores)
-- `src/routes/admin.tsx` (link al panel + rename)
-- `src/routes/empleadas.tsx` (rename UI + campos hire_date/branch)
-- `src/routes/admin-limpieza.tsx`, `src/routes/admin-insumos.tsx` (rename UI)
-- `src/integrations/supabase/types.ts` (auto tras migración)
-
----
-
-### Notas
-
-Tu mensaje quedó cortado en "**5. CONTROL DE SALDOS — Crear una tabla automática para cada colaborador con: -**". Asumí los campos estándar (asignados / usados / ajustes / disponibles / antigüedad). Si querías incluir algún otro campo en la tabla de saldos, dímelo antes de aprobar y lo agrego.
-
-¿Apruebas para empezar?
+Confirma estas 4 cosas y arranco con la **Fase 1** completa en el siguiente turno.
