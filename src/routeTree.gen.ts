@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
+import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -28,6 +29,11 @@ const VacacionesRoute = VacacionesRouteImport.update({
 const LimpiezaRoute = LimpiezaRouteImport.update({
   id: '/limpieza',
   path: '/limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventarioRoute = InventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsumosRoute = InsumosRouteImport.update({
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
+  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -92,6 +99,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
+  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -105,6 +113,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
+  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -119,6 +128,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/empleadas'
     | '/insumos'
+    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   fileRoutesByTo: FileRoutesByTo
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/empleadas'
     | '/insumos'
+    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   id:
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/empleadas'
     | '/insumos'
+    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   fileRoutesById: FileRoutesById
@@ -156,6 +168,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   EmpleadasRoute: typeof EmpleadasRoute
   InsumosRoute: typeof InsumosRoute
+  InventarioRoute: typeof InventarioRoute
   LimpiezaRoute: typeof LimpiezaRoute
   VacacionesRoute: typeof VacacionesRoute
 }
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/limpieza'
       fullPath: '/limpieza'
       preLoaderRoute: typeof LimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventario': {
+      id: '/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof InventarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insumos': {
@@ -244,9 +264,20 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   EmpleadasRoute: EmpleadasRoute,
   InsumosRoute: InsumosRoute,
+  InventarioRoute: InventarioRoute,
   LimpiezaRoute: LimpiezaRoute,
   VacacionesRoute: VacacionesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
