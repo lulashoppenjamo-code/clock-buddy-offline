@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, Lock, Plus, Pencil, Trash2, Download, Upload, Bell, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, Plus, Pencil, Trash2, Download, Upload, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { AdminGate } from "@/components/AdminGate";
 import { lock } from "@/lib/admin-lock";
