@@ -17,6 +17,7 @@ import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
+import { Route as AdminInventarioRouteImport } from './routes/admin-inventario'
 import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -61,6 +62,11 @@ const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
   path: '/admin-limpieza',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminInventarioRoute = AdminInventarioRouteImport.update({
+  id: '/admin-inventario',
+  path: '/admin-inventario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminInsumosRoute = AdminInsumosRouteImport.update({
   id: '/admin-insumos',
   path: '/admin-insumos',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
+  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
+  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
+  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
+    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
+    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
+    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdminInsumosRoute: typeof AdminInsumosRoute
+  AdminInventarioRoute: typeof AdminInventarioRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AdminVacacionesRoute: typeof AdminVacacionesRoute
   AuthRoute: typeof AuthRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLimpiezaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-inventario': {
+      id: '/admin-inventario'
+      path: '/admin-inventario'
+      fullPath: '/admin-inventario'
+      preLoaderRoute: typeof AdminInventarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin-insumos': {
       id: '/admin-insumos'
       path: '/admin-insumos'
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdminInsumosRoute: AdminInsumosRoute,
+  AdminInventarioRoute: AdminInventarioRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AdminVacacionesRoute: AdminVacacionesRoute,
   AuthRoute: AuthRoute,

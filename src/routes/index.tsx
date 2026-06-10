@@ -420,6 +420,11 @@ function Index() {
             🌴 Vacaciones
           </Button>
         </Link>
+        <Link to="/inventario">
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            📋 Inventario
+          </Button>
+        </Link>
         <Link to="/empleadas">
           <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
             <Settings className="h-4 w-4 mr-1" /> Colaboradores
