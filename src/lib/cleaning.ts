@@ -27,6 +27,22 @@ export function statusForLast(
   nowMs = Date.now(),
 ): Status {
   if (!lastIso) return "red";
+
+  if (freq === "weekly") {
+    const now = new Date(nowMs);
+    const day = now.getDay(); // 0=domingo, 1=lunes...
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - diffToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+    const last = new Date(lastIso);
+    if (last >= weekStart) return "green";
+    const prevWeekStart = new Date(weekStart);
+    prevWeekStart.setDate(weekStart.getDate() - 7);
+    if (last >= prevWeekStart) return "yellow";
+    return "red";
+  }
+
   const age = nowMs - new Date(lastIso).getTime();
   const period = frequencyMs(freq);
   if (age >= period) return "red";
