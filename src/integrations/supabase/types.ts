@@ -158,6 +158,60 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: string | null
+          email: string | null
+          end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          school: string | null
+          start_date: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type?: string | null
+          email?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          school?: string | null
+          start_date?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: string | null
+          email?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          school?: string | null
+          start_date?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           active: boolean
