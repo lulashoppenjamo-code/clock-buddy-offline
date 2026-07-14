@@ -59,7 +59,8 @@ const STATUS_META: Record<Status, { label: string; dot: string; badge: string }>
 };
 
 function genCode() {
-  return "CLI-" + Math.random().toString(36).slice(2, 8).toUpperCase() + Date.now().toString(36).slice(-4).toUpperCase();
+  // 8 dígitos numéricos únicos
+  return Math.floor(10000000 + Math.random() * 90000000).toString();
 }
 
 function ClientesRoute() {
