@@ -11,14 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
-import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
-import { Route as AdminInventarioRouteImport } from './routes/admin-inventario'
 import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,11 +29,6 @@ const VacacionesRoute = VacacionesRouteImport.update({
 const LimpiezaRoute = LimpiezaRouteImport.update({
   id: '/limpieza',
   path: '/limpieza',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InventarioRoute = InventarioRouteImport.update({
-  id: '/inventario',
-  path: '/inventario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsumosRoute = InsumosRouteImport.update({
@@ -68,11 +61,6 @@ const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
   path: '/admin-limpieza',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminInventarioRoute = AdminInventarioRouteImport.update({
-  id: '/admin-inventario',
-  path: '/admin-inventario',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminInsumosRoute = AdminInsumosRouteImport.update({
   id: '/admin-insumos',
   path: '/admin-insumos',
@@ -93,14 +81,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
-  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
-  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -108,14 +94,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
-  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
-  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -124,14 +108,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-insumos': typeof AdminInsumosRoute
-  '/admin-inventario': typeof AdminInventarioRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
-  '/inventario': typeof InventarioRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
 }
@@ -141,14 +123,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
-    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
-    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   fileRoutesByTo: FileRoutesByTo
@@ -156,14 +136,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
-    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
-    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   id:
@@ -171,14 +149,12 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-insumos'
-    | '/admin-inventario'
     | '/admin-limpieza'
     | '/admin-vacaciones'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
-    | '/inventario'
     | '/limpieza'
     | '/vacaciones'
   fileRoutesById: FileRoutesById
@@ -187,14 +163,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdminInsumosRoute: typeof AdminInsumosRoute
-  AdminInventarioRoute: typeof AdminInventarioRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AdminVacacionesRoute: typeof AdminVacacionesRoute
   AuthRoute: typeof AuthRoute
   ClientesRoute: typeof ClientesRoute
   EmpleadasRoute: typeof EmpleadasRoute
   InsumosRoute: typeof InsumosRoute
-  InventarioRoute: typeof InventarioRoute
   LimpiezaRoute: typeof LimpiezaRoute
   VacacionesRoute: typeof VacacionesRoute
 }
@@ -213,13 +187,6 @@ declare module '@tanstack/react-router' {
       path: '/limpieza'
       fullPath: '/limpieza'
       preLoaderRoute: typeof LimpiezaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inventario': {
-      id: '/inventario'
-      path: '/inventario'
-      fullPath: '/inventario'
-      preLoaderRoute: typeof InventarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insumos': {
@@ -264,13 +231,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLimpiezaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin-inventario': {
-      id: '/admin-inventario'
-      path: '/admin-inventario'
-      fullPath: '/admin-inventario'
-      preLoaderRoute: typeof AdminInventarioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin-insumos': {
       id: '/admin-insumos'
       path: '/admin-insumos'
@@ -299,14 +259,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdminInsumosRoute: AdminInsumosRoute,
-  AdminInventarioRoute: AdminInventarioRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AdminVacacionesRoute: AdminVacacionesRoute,
   AuthRoute: AuthRoute,
   ClientesRoute: ClientesRoute,
   EmpleadasRoute: EmpleadasRoute,
   InsumosRoute: InsumosRoute,
-  InventarioRoute: InventarioRoute,
   LimpiezaRoute: LimpiezaRoute,
   VacacionesRoute: VacacionesRoute,
 }
