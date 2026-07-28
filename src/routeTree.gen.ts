@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
@@ -21,6 +22,11 @@ import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VentasRoute = VentasRouteImport.update({
+  id: '/ventas',
+  path: '/ventas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VacacionesRoute = VacacionesRouteImport.update({
   id: '/vacaciones',
   path: '/vacaciones',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,10 +183,18 @@ export interface RootRouteChildren {
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   VacacionesRoute: typeof VacacionesRoute
+  VentasRoute: typeof VentasRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ventas': {
+      id: '/ventas'
+      path: '/ventas'
+      fullPath: '/ventas'
+      preLoaderRoute: typeof VentasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vacaciones': {
       id: '/vacaciones'
       path: '/vacaciones'
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   VacacionesRoute: VacacionesRoute,
+  VentasRoute: VentasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
