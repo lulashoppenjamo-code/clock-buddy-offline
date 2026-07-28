@@ -266,6 +266,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               💖 Clientes con Convenio
             </Button>
           </Link>
+          <Link to="/admin-ventas" className="block">
+            <Button className="w-full bg-rose-600 hover:bg-rose-700">
+              📈 Ventas Agregadas
+            </Button>
+          </Link>
         </Card>
 
         <div className="grid grid-cols-2 gap-2">
