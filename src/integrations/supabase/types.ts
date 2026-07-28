@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_sales: {
+        Row: {
+          addon_product: string
+          branch: string
+          client_id: string
+          comment: string | null
+          created_at: string
+          employee_id: string
+          employee_name: string
+          id: string
+          main_product: string
+          owner_id: string
+          photo_path: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sold_at: string
+          status: Database["public"]["Enums"]["addon_sale_status"]
+          ticket_number: string
+          updated_at: string
+        }
+        Insert: {
+          addon_product: string
+          branch: string
+          client_id: string
+          comment?: string | null
+          created_at?: string
+          employee_id: string
+          employee_name: string
+          id?: string
+          main_product: string
+          owner_id: string
+          photo_path: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sold_at?: string
+          status?: Database["public"]["Enums"]["addon_sale_status"]
+          ticket_number: string
+          updated_at?: string
+        }
+        Update: {
+          addon_product?: string
+          branch?: string
+          client_id?: string
+          comment?: string | null
+          created_at?: string
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          main_product?: string
+          owner_id?: string
+          photo_path?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sold_at?: string
+          status?: Database["public"]["Enums"]["addon_sale_status"]
+          ticket_number?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cleaning_areas: {
         Row: {
           active: boolean
@@ -1187,6 +1247,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      addon_sale_status: "pendiente" | "validado" | "rechazado"
       alert_kind: "stock_min" | "agotado" | "diferencia" | "traspaso" | "ajuste"
       cleaning_frequency: "daily" | "weekly" | "monthly"
       count_frequency: "manual" | "diario" | "semanal" | "mensual"
@@ -1338,6 +1399,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      addon_sale_status: ["pendiente", "validado", "rechazado"],
       alert_kind: ["stock_min", "agotado", "diferencia", "traspaso", "ajuste"],
       cleaning_frequency: ["daily", "weekly", "monthly"],
       count_frequency: ["manual", "diario", "semanal", "mensual"],

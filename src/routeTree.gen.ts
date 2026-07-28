@@ -9,18 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminVentasRouteImport } from './routes/admin-ventas'
 import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
 import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VentasRoute = VentasRouteImport.update({
+  id: '/ventas',
+  path: '/ventas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VacacionesRoute = VacacionesRouteImport.update({
   id: '/vacaciones',
   path: '/vacaciones',
@@ -49,6 +56,11 @@ const ClientesRoute = ClientesRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVentasRoute = AdminVentasRouteImport.update({
+  id: '/admin-ventas',
+  path: '/admin-ventas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminVacacionesRoute = AdminVacacionesRouteImport.update({
@@ -83,12 +95,14 @@ export interface FileRoutesByFullPath {
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
+  '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -96,12 +110,14 @@ export interface FileRoutesByTo {
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
+  '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -110,12 +126,14 @@ export interface FileRoutesById {
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-vacaciones': typeof AdminVacacionesRoute
+  '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/vacaciones': typeof VacacionesRoute
+  '/ventas': typeof VentasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -125,12 +143,14 @@ export interface FileRouteTypes {
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-vacaciones'
+    | '/admin-ventas'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,12 +158,14 @@ export interface FileRouteTypes {
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-vacaciones'
+    | '/admin-ventas'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   id:
     | '__root__'
     | '/'
@@ -151,12 +173,14 @@ export interface FileRouteTypes {
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-vacaciones'
+    | '/admin-ventas'
     | '/auth'
     | '/clientes'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
     | '/vacaciones'
+    | '/ventas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,16 +189,25 @@ export interface RootRouteChildren {
   AdminInsumosRoute: typeof AdminInsumosRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AdminVacacionesRoute: typeof AdminVacacionesRoute
+  AdminVentasRoute: typeof AdminVentasRoute
   AuthRoute: typeof AuthRoute
   ClientesRoute: typeof ClientesRoute
   EmpleadasRoute: typeof EmpleadasRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   VacacionesRoute: typeof VacacionesRoute
+  VentasRoute: typeof VentasRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ventas': {
+      id: '/ventas'
+      path: '/ventas'
+      fullPath: '/ventas'
+      preLoaderRoute: typeof VentasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vacaciones': {
       id: '/vacaciones'
       path: '/vacaciones'
@@ -215,6 +248,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-ventas': {
+      id: '/admin-ventas'
+      path: '/admin-ventas'
+      fullPath: '/admin-ventas'
+      preLoaderRoute: typeof AdminVentasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin-vacaciones': {
@@ -261,12 +301,14 @@ const rootRouteChildren: RootRouteChildren = {
   AdminInsumosRoute: AdminInsumosRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AdminVacacionesRoute: AdminVacacionesRoute,
+  AdminVentasRoute: AdminVentasRoute,
   AuthRoute: AuthRoute,
   ClientesRoute: ClientesRoute,
   EmpleadasRoute: EmpleadasRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   VacacionesRoute: VacacionesRoute,
+  VentasRoute: VentasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
