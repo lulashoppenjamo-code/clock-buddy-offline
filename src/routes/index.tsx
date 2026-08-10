@@ -430,6 +430,11 @@ function Index() {
             📈 Ventas Agregadas
           </Button>
         </Link>
+        <Link to="/ranking">
+          <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
+            🏆 Ranking
+          </Button>
+        </Link>
         <Link to="/empleadas">
           <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
             <Settings className="h-4 w-4 mr-1" /> Colaboradores

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
@@ -31,6 +32,11 @@ const VentasRoute = VentasRouteImport.update({
 const VacacionesRoute = VacacionesRouteImport.update({
   id: '/vacaciones',
   path: '/vacaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LimpiezaRoute = LimpiezaRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
+    | '/ranking'
     | '/vacaciones'
     | '/ventas'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
+    | '/ranking'
     | '/vacaciones'
     | '/ventas'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
+    | '/ranking'
     | '/vacaciones'
     | '/ventas'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   EmpleadasRoute: typeof EmpleadasRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
+  RankingRoute: typeof RankingRoute
   VacacionesRoute: typeof VacacionesRoute
   VentasRoute: typeof VentasRoute
 }
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/vacaciones'
       fullPath: '/vacaciones'
       preLoaderRoute: typeof VacacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/limpieza': {
@@ -307,9 +327,20 @@ const rootRouteChildren: RootRouteChildren = {
   EmpleadasRoute: EmpleadasRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
+  RankingRoute: RankingRoute,
   VacacionesRoute: VacacionesRoute,
   VentasRoute: VentasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
