@@ -420,6 +420,12 @@ function Index() {
             🌴 Vacaciones
           </Button>
         </Link>
+        <Link to="/descansos">
+          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            🛌 Descansos
+          </Button>
+        </Link>
+
         <Link to="/clientes">
           <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
             💖 Clientes
