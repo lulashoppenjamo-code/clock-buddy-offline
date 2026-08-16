@@ -875,6 +875,129 @@ export type Database = {
           },
         ]
       }
+      rest_days: {
+        Row: {
+          branch: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          owner_id: string
+          reason: string | null
+          rest_date: string
+          type: string
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          owner_id: string
+          reason?: string | null
+          rest_date: string
+          type?: string
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          reason?: string | null
+          rest_date?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_days_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rest_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          new_date: string
+          original_weekday: number | null
+          owner_id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          new_date: string
+          original_weekday?: number | null
+          owner_id: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          new_date?: string
+          original_weekday?: number | null
+          owner_id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_overrides_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rest_schedule: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          owner_id: string
+          updated_at: string
+          updated_by: string | null
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_schedule_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active: boolean

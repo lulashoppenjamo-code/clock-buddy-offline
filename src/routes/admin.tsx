@@ -261,6 +261,12 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               🌴 Vacaciones
             </Button>
           </Link>
+          <Link to="/admin-descansos" className="block">
+            <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+              🛌 Descansos
+            </Button>
+          </Link>
+
           <Link to="/clientes" className="block">
             <Button className="w-full bg-pink-600 hover:bg-pink-700">
               💖 Clientes con Convenio
