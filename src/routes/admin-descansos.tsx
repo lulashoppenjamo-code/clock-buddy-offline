@@ -22,6 +22,9 @@ import {
   Gift,
   ChevronLeft,
   ChevronRight,
+  Check,
+  X,
+  Inbox,
 } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
 import {
@@ -35,9 +38,11 @@ import {
   monthGrid,
   buildCalendar,
   fetchRestData,
+  fetchChangeRequests,
   type RestSchedule,
   type RestOverride,
   type RestDay,
+  type RestChangeRequest,
 } from "@/lib/rest-days";
 import * as XLSX from "xlsx";
 
@@ -98,10 +103,11 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
   const [schedules, setSchedules] = useState<RestSchedule[]>([]);
   const [overrides, setOverrides] = useState<RestOverride[]>([]);
   const [bonuses, setBonuses] = useState<RestDay[]>([]);
+  const [requests, setRequests] = useState<RestChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    const [{ data: emps }, rest] = await Promise.all([
+    const [{ data: emps }, rest, reqs] = await Promise.all([
       supabase
         .from("employees")
         .select("id,name,color,branch")
@@ -109,16 +115,29 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
         .eq("active", true)
         .order("name"),
       fetchRestData(ownerId),
+      fetchChangeRequests(ownerId),
     ]);
     setEmployees((emps as any) ?? []);
     setSchedules(rest.schedules);
     setOverrides(rest.overrides);
     setBonuses(rest.bonuses);
+    setRequests(reqs);
     setLoading(false);
   }
 
   useEffect(() => {
     load();
+    const ch = supabase
+      .channel("admin-descansos-requests")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rest_change_requests" },
+        () => load(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerId]);
 
@@ -127,6 +146,8 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
     for (const e of employees) m[e.id] = e;
     return m;
   }, [employees]);
+
+  const pendingCount = requests.filter((r) => r.status === "pendiente").length;
 
   if (loading) {
     return (
@@ -153,6 +174,12 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
             <TabsTrigger value="cambio" className="flex-1">Programar cambio</TabsTrigger>
             <TabsTrigger value="bono" className="flex-1">Domingo bono</TabsTrigger>
             <TabsTrigger value="calendario" className="flex-1">Calendario</TabsTrigger>
+            <TabsTrigger value="solicitudes" className="flex-1">
+              Solicitudes
+              {pendingCount > 0 && (
+                <Badge className="ml-1.5 bg-rose-600 hover:bg-rose-600 px-1.5">{pendingCount}</Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="historial" className="flex-1">Historial</TabsTrigger>
           </TabsList>
 
@@ -193,6 +220,15 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
               schedules={schedules}
               overrides={overrides}
               bonuses={bonuses}
+            />
+          </TabsContent>
+
+          <TabsContent value="solicitudes" className="pt-3">
+            <SolicitudesTab
+              ownerId={ownerId}
+              requests={requests}
+              empById={empById}
+              onSaved={load}
             />
           </TabsContent>
 
@@ -727,6 +763,187 @@ function CalendarTab({
         ))}
       </div>
     </Card>
+  );
+}
+
+/* ------------------------------ Solicitudes ------------------------------ */
+
+function SolicitudesTab({
+  ownerId,
+  requests,
+  empById,
+  onSaved,
+}: {
+  ownerId: string;
+  requests: RestChangeRequest[];
+  empById: Record<string, Employee>;
+  onSaved: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [rejecting, setRejecting] = useState<RestChangeRequest | null>(null);
+  const [rejectComment, setRejectComment] = useState("");
+
+  const pending = requests.filter((r) => r.status === "pendiente");
+  const decided = requests.filter((r) => r.status !== "pendiente");
+
+  async function approve(r: RestChangeRequest) {
+    setBusy(r.id);
+    // Crea el override correspondiente
+    const { error: ovrError } = await supabase.from("rest_overrides").insert({
+      owner_id: ownerId,
+      employee_id: r.employee_id,
+      original_weekday: r.original_weekday,
+      new_date: r.requested_date,
+      reason: r.reason ? `Solicitud aprobada: ${r.reason}` : "Solicitud de la colaboradora aprobada",
+      created_by: ownerId,
+    });
+    if (ovrError && ovrError.code !== "23505") {
+      setBusy(null);
+      toast.error(ovrError.message);
+      return;
+    }
+    const { error } = await supabase
+      .from("rest_change_requests")
+      .update({
+        status: "aprobada",
+        decided_by: ownerId,
+        decided_at: new Date().toISOString(),
+      })
+      .eq("id", r.id);
+    setBusy(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Solicitud aprobada");
+    onSaved();
+  }
+
+  async function reject() {
+    if (!rejecting) return;
+    setBusy(rejecting.id);
+    const { error } = await supabase
+      .from("rest_change_requests")
+      .update({
+        status: "rechazada",
+        admin_comment: rejectComment || null,
+        decided_by: ownerId,
+        decided_at: new Date().toISOString(),
+      })
+      .eq("id", rejecting.id);
+    setBusy(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Solicitud rechazada");
+    setRejecting(null);
+    setRejectComment("");
+    onSaved();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="text-sm font-medium flex items-center gap-1">
+          <Inbox className="h-4 w-4" /> Pendientes
+        </p>
+        {pending.length === 0 && (
+          <p className="text-sm text-muted-foreground">No hay solicitudes pendientes</p>
+        )}
+        {pending.map((r) => {
+          const e = empById[r.employee_id];
+          return (
+            <Card key={r.id} className="p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="h-3 w-3 rounded-full mt-1" style={{ backgroundColor: e?.color }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Pide descansar: {formatDateLong(r.requested_date)}
+                    {r.original_weekday !== null && ` · en lugar de ${weekdayName(r.original_weekday)}`}
+                  </p>
+                  {r.reason && <p className="text-xs mt-1">📝 {r.reason}</p>}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  disabled={busy === r.id}
+                  onClick={() => approve(r)}
+                >
+                  {busy === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                  Aprobar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="flex-1"
+                  disabled={busy === r.id}
+                  onClick={() => {
+                    setRejecting(r);
+                    setRejectComment("");
+                  }}
+                >
+                  <X className="h-3 w-3" /> Rechazar
+                </Button>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {decided.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium">Resueltas</p>
+          {decided.map((r) => {
+            const e = empById[r.employee_id];
+            return (
+              <Card key={r.id} className="p-3 flex items-start gap-2 opacity-80">
+                <div className="h-3 w-3 rounded-full mt-1" style={{ backgroundColor: e?.color }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                    <Badge
+                      className={
+                        r.status === "aprobada"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-rose-100 text-rose-800"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{formatDateLong(r.requested_date)}</p>
+                  {r.admin_comment && <p className="text-xs mt-1 text-rose-700">Admin: {r.admin_comment}</p>}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <Dialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar solicitud</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="rc">Motivo (opcional)</Label>
+              <Textarea id="rc" value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={reject} disabled={busy === rejecting?.id}>
+              {busy === rejecting?.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+              Rechazar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
