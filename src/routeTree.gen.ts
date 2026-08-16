@@ -15,6 +15,7 @@ import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
+import { Route as DescansosRouteImport } from './routes/descansos'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminVentasRouteImport } from './routes/admin-ventas'
@@ -53,6 +54,11 @@ const InsumosRoute = InsumosRouteImport.update({
 const EmpleadasRoute = EmpleadasRouteImport.update({
   id: '/empleadas',
   path: '/empleadas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DescansosRoute = DescansosRouteImport.update({
+  id: '/descansos',
+  path: '/descansos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesRoute = ClientesRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
+  '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
+  '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
+  '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/admin-ventas'
     | '/auth'
     | '/clientes'
+    | '/descansos'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/admin-ventas'
     | '/auth'
     | '/clientes'
+    | '/descansos'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/admin-ventas'
     | '/auth'
     | '/clientes'
+    | '/descansos'
     | '/empleadas'
     | '/insumos'
     | '/limpieza'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   AdminVentasRoute: typeof AdminVentasRoute
   AuthRoute: typeof AuthRoute
   ClientesRoute: typeof ClientesRoute
+  DescansosRoute: typeof DescansosRoute
   EmpleadasRoute: typeof EmpleadasRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/empleadas'
       fullPath: '/empleadas'
       preLoaderRoute: typeof EmpleadasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/descansos': {
+      id: '/descansos'
+      path: '/descansos'
+      fullPath: '/descansos'
+      preLoaderRoute: typeof DescansosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes': {
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminVentasRoute: AdminVentasRoute,
   AuthRoute: AuthRoute,
   ClientesRoute: ClientesRoute,
+  DescansosRoute: DescansosRoute,
   EmpleadasRoute: EmpleadasRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
