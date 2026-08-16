@@ -44,6 +44,22 @@ export type RestDay = {
   created_at: string;
 };
 
+export type RestChangeStatus = "pendiente" | "aprobada" | "rechazada";
+
+export type RestChangeRequest = {
+  id: string;
+  owner_id: string;
+  employee_id: string;
+  requested_date: string;
+  original_weekday: number | null;
+  reason: string | null;
+  status: RestChangeStatus;
+  admin_comment: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string;
+};
+
 export function weekdayName(w: number | null | undefined): string {
   if (w === null || w === undefined) return "Sin asignar";
   return WEEKDAYS[w] ?? "Sin asignar";
@@ -159,4 +175,15 @@ export async function fetchRestData(ownerId: string) {
     overrides: (overrides ?? []) as RestOverride[],
     bonuses: (bonuses ?? []) as RestDay[],
   };
+}
+
+export async function fetchChangeRequests(ownerId: string, employeeId?: string) {
+  let query = supabase
+    .from("rest_change_requests")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+  if (employeeId) query = query.eq("employee_id", employeeId);
+  const { data } = await query;
+  return (data ?? []) as RestChangeRequest[];
 }
