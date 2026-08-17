@@ -886,6 +886,7 @@ export type Database = {
           original_weekday: number | null
           owner_id: string
           reason: string | null
+          request_type: string
           requested_date: string
           status: string
         }
@@ -899,6 +900,7 @@ export type Database = {
           original_weekday?: number | null
           owner_id: string
           reason?: string | null
+          request_type?: string
           requested_date: string
           status?: string
         }
@@ -912,6 +914,7 @@ export type Database = {
           original_weekday?: number | null
           owner_id?: string
           reason?: string | null
+          request_type?: string
           requested_date?: string
           status?: string
         }
