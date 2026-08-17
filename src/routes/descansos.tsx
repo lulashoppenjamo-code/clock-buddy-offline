@@ -15,6 +15,7 @@ import {
   WEEKDAYS,
   weekdayName,
   todayISO,
+  isSunday,
   toISODate,
   formatDateLong,
   monthGrid,
