@@ -379,6 +379,15 @@ function DescansosPanel({
         schedule={schedule}
         onSent={load}
       />
+
+      <RequestBonoDialog
+        open={bonoOpen}
+        onOpenChange={setBonoOpen}
+        ownerId={ownerId}
+        employee={employee}
+        onSent={load}
+      />
+
     </div>
   );
 }
