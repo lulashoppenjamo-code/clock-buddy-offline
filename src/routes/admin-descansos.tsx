@@ -788,15 +788,29 @@ function SolicitudesTab({
 
   async function approve(r: RestChangeRequest) {
     setBusy(r.id);
-    // Crea el override correspondiente
-    const { error: ovrError } = await supabase.from("rest_overrides").insert({
-      owner_id: ownerId,
-      employee_id: r.employee_id,
-      original_weekday: r.original_weekday,
-      new_date: r.requested_date,
-      reason: r.reason ? `Solicitud aprobada: ${r.reason}` : "Solicitud de la colaboradora aprobada",
-      created_by: ownerId,
-    });
+    const e = empById[r.employee_id];
+    const insertRes =
+      r.request_type === "bono"
+        ? await supabase.from("rest_days").insert({
+            owner_id: ownerId,
+            employee_id: r.employee_id,
+            rest_date: r.requested_date,
+            type: "bono_domingo",
+            reason: r.reason ? `Solicitud aprobada: ${r.reason}` : "Domingo bono aprobado",
+            branch: e?.branch ?? null,
+            created_by: ownerId,
+          })
+        : await supabase.from("rest_overrides").insert({
+            owner_id: ownerId,
+            employee_id: r.employee_id,
+            original_weekday: r.original_weekday,
+            new_date: r.requested_date,
+            reason: r.reason
+              ? `Solicitud aprobada: ${r.reason}`
+              : "Solicitud de la colaboradora aprobada",
+            created_by: ownerId,
+          });
+    const ovrError = insertRes.error;
     if (ovrError && ovrError.code !== "23505") {
       setBusy(null);
       toast.error(ovrError.message);
