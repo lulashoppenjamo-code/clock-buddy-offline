@@ -872,7 +872,18 @@ function SolicitudesTab({
               <div className="flex items-start gap-2">
                 <div className="h-3 w-3 rounded-full mt-1" style={{ backgroundColor: e?.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                    <Badge
+                      className={
+                        r.request_type === "bono"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-indigo-100 text-indigo-800"
+                      }
+                    >
+                      {r.request_type === "bono" ? "🎁 Domingo bono" : "🔁 Cambio de día"}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Pide descansar: {formatDateLong(r.requested_date)}
                     {r.original_weekday !== null && ` · en lugar de ${weekdayName(r.original_weekday)}`}
