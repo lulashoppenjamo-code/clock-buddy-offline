@@ -236,12 +236,21 @@ function DescansosPanel({
           )}
         </Card>
 
-        <Button
-          onClick={() => setRequestOpen(true)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700"
-        >
-          <CalendarPlus2 className="h-4 w-4" /> Solicitar cambio de día
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => setRequestOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <CalendarPlus2 className="h-4 w-4" /> Cambiar día
+          </Button>
+          <Button
+            onClick={() => setBonoOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            <Gift className="h-4 w-4" /> Pedir domingo bono
+          </Button>
+        </div>
+
 
         <Tabs defaultValue="equipo">
           <TabsList className="w-full flex-wrap h-auto">
