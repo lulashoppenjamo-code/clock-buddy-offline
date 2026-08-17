@@ -875,6 +875,56 @@ export type Database = {
           },
         ]
       }
+      rest_change_requests: {
+        Row: {
+          admin_comment: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          employee_id: string
+          id: string
+          original_weekday: number | null
+          owner_id: string
+          reason: string | null
+          requested_date: string
+          status: string
+        }
+        Insert: {
+          admin_comment?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_id: string
+          id?: string
+          original_weekday?: number | null
+          owner_id: string
+          reason?: string | null
+          requested_date: string
+          status?: string
+        }
+        Update: {
+          admin_comment?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_id?: string
+          id?: string
+          original_weekday?: number | null
+          owner_id?: string
+          reason?: string | null
+          requested_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rest_days: {
         Row: {
           branch: string | null
