@@ -591,3 +591,92 @@ function RequestChangeDialog({
     </Dialog>
   );
 }
+
+/* ------------------------------ Solicitar domingo bono ------------------------------ */
+
+function RequestBonoDialog({
+  open,
+  onOpenChange,
+  ownerId,
+  employee,
+  onSent,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  ownerId: string;
+  employee: Employee;
+  onSent: () => void;
+}) {
+  const [date, setDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!date) {
+      toast.error("Elige el domingo que quieres descansar");
+      return;
+    }
+    if (!isSunday(date)) {
+      toast.error("El domingo bono debe caer en domingo");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("rest_change_requests").insert({
+      owner_id: ownerId,
+      employee_id: employee.id,
+      requested_date: date,
+      original_weekday: null,
+      reason: reason || null,
+      status: "pendiente",
+      request_type: "bono",
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Solicitud de domingo bono enviada");
+    setDate("");
+    setReason("");
+    onOpenChange(false);
+    onSent();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Gift className="h-4 w-4 text-amber-600" /> Pedir domingo bono
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Los domingos bono son un premio por cumplir tu meta. Elige el domingo que quieres
+            descansar; tu jefa debe autorizarlo.
+          </p>
+          <div>
+            <Label htmlFor="bn-date">Domingo</Label>
+            <Input id="bn-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="bn-reason">Motivo (opcional)</Label>
+            <Textarea
+              id="bn-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ej: cumplí mi meta de ventas de julio"
+              maxLength={300}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={submit} disabled={busy} className="bg-amber-500 hover:bg-amber-600 text-white">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Enviar solicitud
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
