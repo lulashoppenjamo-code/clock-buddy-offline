@@ -10,11 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, ChevronLeft, ChevronRight, CalendarPlus2, Send } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronLeft, ChevronRight, CalendarPlus2, Send, Gift } from "lucide-react";
 import {
   WEEKDAYS,
   weekdayName,
   todayISO,
+  isSunday,
   toISODate,
   formatDateLong,
   monthGrid,
@@ -185,6 +186,7 @@ function DescansosPanel({
   const [allBonuses, setAllBonuses] = useState<RestDay[]>([]);
   const [requests, setRequests] = useState<RestChangeRequest[]>([]);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [bonoOpen, setBonoOpen] = useState(false);
   const today = todayISO();
 
   async function load() {
@@ -235,12 +237,21 @@ function DescansosPanel({
           )}
         </Card>
 
-        <Button
-          onClick={() => setRequestOpen(true)}
-          className="w-full bg-indigo-600 hover:bg-indigo-700"
-        >
-          <CalendarPlus2 className="h-4 w-4" /> Solicitar cambio de día
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => setRequestOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            <CalendarPlus2 className="h-4 w-4" /> Cambiar día
+          </Button>
+          <Button
+            onClick={() => setBonoOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            <Gift className="h-4 w-4" /> Pedir domingo bono
+          </Button>
+        </div>
+
 
         <Tabs defaultValue="equipo">
           <TabsList className="w-full flex-wrap h-auto">
@@ -311,17 +322,28 @@ function DescansosPanel({
               <Card key={r.id} className="p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{formatDateLong(r.requested_date)}</p>
-                  <Badge
-                    className={
-                      r.status === "aprobada"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : r.status === "rechazada"
-                          ? "bg-rose-100 text-rose-800"
-                          : "bg-amber-100 text-amber-800"
-                    }
-                  >
-                    {r.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      className={
+                        r.request_type === "bono"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-indigo-100 text-indigo-800"
+                      }
+                    >
+                      {r.request_type === "bono" ? "🎁 Bono" : "🔁 Cambio"}
+                    </Badge>
+                    <Badge
+                      className={
+                        r.status === "aprobada"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : r.status === "rechazada"
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-amber-100 text-amber-800"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                  </div>
                 </div>
                 {r.reason && <p className="text-xs mt-1 text-muted-foreground">📝 {r.reason}</p>}
                 {r.admin_comment && (
@@ -358,6 +380,15 @@ function DescansosPanel({
         schedule={schedule}
         onSent={load}
       />
+
+      <RequestBonoDialog
+        open={bonoOpen}
+        onOpenChange={setBonoOpen}
+        ownerId={ownerId}
+        employee={employee}
+        onSent={load}
+      />
+
     </div>
   );
 }
@@ -513,6 +544,7 @@ function RequestChangeDialog({
       original_weekday: schedule?.weekday ?? null,
       reason: reason || null,
       status: "pendiente",
+      request_type: "cambio",
     });
     setBusy(false);
     if (error) {
@@ -553,6 +585,95 @@ function RequestChangeDialog({
         </div>
         <DialogFooter>
           <Button onClick={submit} disabled={busy} className="bg-indigo-600 hover:bg-indigo-700">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Enviar solicitud
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------ Solicitar domingo bono ------------------------------ */
+
+function RequestBonoDialog({
+  open,
+  onOpenChange,
+  ownerId,
+  employee,
+  onSent,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  ownerId: string;
+  employee: Employee;
+  onSent: () => void;
+}) {
+  const [date, setDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!date) {
+      toast.error("Elige el domingo que quieres descansar");
+      return;
+    }
+    if (!isSunday(date)) {
+      toast.error("El domingo bono debe caer en domingo");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("rest_change_requests").insert({
+      owner_id: ownerId,
+      employee_id: employee.id,
+      requested_date: date,
+      original_weekday: null,
+      reason: reason || null,
+      status: "pendiente",
+      request_type: "bono",
+    });
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Solicitud de domingo bono enviada");
+    setDate("");
+    setReason("");
+    onOpenChange(false);
+    onSent();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Gift className="h-4 w-4 text-amber-600" /> Pedir domingo bono
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Los domingos bono son un premio por cumplir tu meta. Elige el domingo que quieres
+            descansar; tu jefa debe autorizarlo.
+          </p>
+          <div>
+            <Label htmlFor="bn-date">Domingo</Label>
+            <Input id="bn-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="bn-reason">Motivo (opcional)</Label>
+            <Textarea
+              id="bn-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ej: cumplí mi meta de ventas de julio"
+              maxLength={300}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button onClick={submit} disabled={busy} className="bg-amber-500 hover:bg-amber-600 text-white">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Enviar solicitud
           </Button>

@@ -788,15 +788,29 @@ function SolicitudesTab({
 
   async function approve(r: RestChangeRequest) {
     setBusy(r.id);
-    // Crea el override correspondiente
-    const { error: ovrError } = await supabase.from("rest_overrides").insert({
-      owner_id: ownerId,
-      employee_id: r.employee_id,
-      original_weekday: r.original_weekday,
-      new_date: r.requested_date,
-      reason: r.reason ? `Solicitud aprobada: ${r.reason}` : "Solicitud de la colaboradora aprobada",
-      created_by: ownerId,
-    });
+    const e = empById[r.employee_id];
+    const insertRes =
+      r.request_type === "bono"
+        ? await supabase.from("rest_days").insert({
+            owner_id: ownerId,
+            employee_id: r.employee_id,
+            rest_date: r.requested_date,
+            type: "bono_domingo",
+            reason: r.reason ? `Solicitud aprobada: ${r.reason}` : "Domingo bono aprobado",
+            branch: e?.branch ?? null,
+            created_by: ownerId,
+          })
+        : await supabase.from("rest_overrides").insert({
+            owner_id: ownerId,
+            employee_id: r.employee_id,
+            original_weekday: r.original_weekday,
+            new_date: r.requested_date,
+            reason: r.reason
+              ? `Solicitud aprobada: ${r.reason}`
+              : "Solicitud de la colaboradora aprobada",
+            created_by: ownerId,
+          });
+    const ovrError = insertRes.error;
     if (ovrError && ovrError.code !== "23505") {
       setBusy(null);
       toast.error(ovrError.message);
@@ -858,7 +872,18 @@ function SolicitudesTab({
               <div className="flex items-start gap-2">
                 <div className="h-3 w-3 rounded-full mt-1" style={{ backgroundColor: e?.color }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                    <Badge
+                      className={
+                        r.request_type === "bono"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-indigo-100 text-indigo-800"
+                      }
+                    >
+                      {r.request_type === "bono" ? "🎁 Domingo bono" : "🔁 Cambio de día"}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     Pide descansar: {formatDateLong(r.requested_date)}
                     {r.original_weekday !== null && ` · en lugar de ${weekdayName(r.original_weekday)}`}
@@ -903,8 +928,17 @@ function SolicitudesTab({
               <Card key={r.id} className="p-3 flex items-start gap-2 opacity-80">
                 <div className="h-3 w-3 rounded-full mt-1" style={{ backgroundColor: e?.color }} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium">{e?.name ?? "—"}</p>
+                    <Badge
+                      className={
+                        r.request_type === "bono"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-indigo-100 text-indigo-800"
+                      }
+                    >
+                      {r.request_type === "bono" ? "🎁 Domingo bono" : "🔁 Cambio de día"}
+                    </Badge>
                     <Badge
                       className={
                         r.status === "aprobada"

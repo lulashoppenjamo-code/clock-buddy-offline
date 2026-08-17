@@ -46,6 +46,8 @@ export type RestDay = {
 
 export type RestChangeStatus = "pendiente" | "aprobada" | "rechazada";
 
+export type RestChangeType = "cambio" | "bono";
+
 export type RestChangeRequest = {
   id: string;
   owner_id: string;
@@ -54,6 +56,7 @@ export type RestChangeRequest = {
   original_weekday: number | null;
   reason: string | null;
   status: RestChangeStatus;
+  request_type: RestChangeType;
   admin_comment: string | null;
   decided_by: string | null;
   decided_at: string | null;
