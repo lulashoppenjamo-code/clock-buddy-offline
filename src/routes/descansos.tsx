@@ -185,6 +185,7 @@ function DescansosPanel({
   const [allBonuses, setAllBonuses] = useState<RestDay[]>([]);
   const [requests, setRequests] = useState<RestChangeRequest[]>([]);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [bonoOpen, setBonoOpen] = useState(false);
   const today = todayISO();
 
   async function load() {
