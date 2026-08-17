@@ -544,6 +544,7 @@ function RequestChangeDialog({
       original_weekday: schedule?.weekday ?? null,
       reason: reason || null,
       status: "pendiente",
+      request_type: "cambio",
     });
     setBusy(false);
     if (error) {
