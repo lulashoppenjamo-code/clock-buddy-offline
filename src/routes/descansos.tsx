@@ -321,17 +321,28 @@ function DescansosPanel({
               <Card key={r.id} className="p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium">{formatDateLong(r.requested_date)}</p>
-                  <Badge
-                    className={
-                      r.status === "aprobada"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : r.status === "rechazada"
-                          ? "bg-rose-100 text-rose-800"
-                          : "bg-amber-100 text-amber-800"
-                    }
-                  >
-                    {r.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge
+                      className={
+                        r.request_type === "bono"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-indigo-100 text-indigo-800"
+                      }
+                    >
+                      {r.request_type === "bono" ? "🎁 Bono" : "🔁 Cambio"}
+                    </Badge>
+                    <Badge
+                      className={
+                        r.status === "aprobada"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : r.status === "rechazada"
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-amber-100 text-amber-800"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                  </div>
                 </div>
                 {r.reason && <p className="text-xs mt-1 text-muted-foreground">📝 {r.reason}</p>}
                 {r.admin_comment && (
