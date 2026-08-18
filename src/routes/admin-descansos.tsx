@@ -39,6 +39,7 @@ import {
   buildCalendar,
   fetchRestData,
   fetchChangeRequests,
+  sundayRestTakenBy,
   type RestSchedule,
   type RestOverride,
   type RestDay,
@@ -357,6 +358,15 @@ function CambioTab({
       toast.error("Ya existe un cambio programado para esa colaboradora en esa fecha");
       return;
     }
+    if (isSunday(date)) {
+      const taken = await sundayRestTakenBy(ownerId, date, employeeId);
+      if (taken) {
+        toast.error(
+          `Ese domingo ya descansa ${empById[taken]?.name ?? "otra colaboradora"}`,
+        );
+        return;
+      }
+    }
     setBusy(true);
     const original = schedules.find((s) => s.employee_id === employeeId)?.weekday ?? null;
     const { error } = await supabase.from("rest_overrides").insert({
@@ -552,6 +562,15 @@ function BonoTab({
     if (bonuses.some((b) => b.employee_id === employeeId && b.rest_date === date)) {
       toast.error("Ese domingo bono ya está registrado para esa colaboradora");
       return;
+    }
+    {
+      const taken = await sundayRestTakenBy(ownerId, date, employeeId);
+      if (taken) {
+        toast.error(
+          `Ese domingo ya descansa ${empById[taken]?.name ?? "otra colaboradora"}`,
+        );
+        return;
+      }
     }
     setBusy(true);
     const { error } = await supabase.from("rest_days").insert({
@@ -789,6 +808,14 @@ function SolicitudesTab({
   async function approve(r: RestChangeRequest) {
     setBusy(r.id);
     const e = empById[r.employee_id];
+    const taken = await sundayRestTakenBy(ownerId, r.requested_date, r.employee_id);
+    if (taken) {
+      setBusy(null);
+      toast.error(
+        `No se puede aprobar: ese domingo ya descansa ${empById[taken]?.name ?? "otra colaboradora"}`,
+      );
+      return;
+    }
     const insertRes =
       r.request_type === "bono"
         ? await supabase.from("rest_days").insert({

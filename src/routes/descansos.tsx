@@ -22,6 +22,7 @@ import {
   buildCalendar,
   fetchRestData,
   fetchChangeRequests,
+  sundayRestTakenBy,
   type RestSchedule,
   type RestOverride,
   type RestDay,
@@ -536,6 +537,13 @@ function RequestChangeDialog({
       toast.error("Elige la fecha en la que quieres descansar");
       return;
     }
+    if (isSunday(date)) {
+      const taken = await sundayRestTakenBy(ownerId, date, employee.id);
+      if (taken) {
+        toast.error("Ese domingo ya lo tiene otra colaboradora, elige otro");
+        return;
+      }
+    }
     setBusy(true);
     const { error } = await supabase.from("rest_change_requests").insert({
       owner_id: ownerId,
@@ -621,6 +629,13 @@ function RequestBonoDialog({
     if (!isSunday(date)) {
       toast.error("El domingo bono debe caer en domingo");
       return;
+    }
+    {
+      const taken = await sundayRestTakenBy(ownerId, date, employee.id);
+      if (taken) {
+        toast.error("Ese domingo ya lo tiene otra colaboradora, elige otro");
+        return;
+      }
     }
     setBusy(true);
     const { error } = await supabase.from("rest_change_requests").insert({
