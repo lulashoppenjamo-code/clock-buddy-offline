@@ -190,3 +190,24 @@ export async function fetchChangeRequests(ownerId: string, employeeId?: string) 
   const { data } = await query;
   return (data ?? []) as RestChangeRequest[];
 }
+
+/**
+ * Returns the employee_id already resting on the given Sunday (bono o cambio),
+ * or null. Solo aplica a domingos: dos colaboradoras no pueden descansar el
+ * mismo domingo.
+ */
+export async function sundayRestTakenBy(
+  ownerId: string,
+  iso: string,
+  excludeEmployeeId?: string,
+): Promise<string | null> {
+  if (!isSunday(iso)) return null;
+  const [{ data: days }, { data: ovr }] = await Promise.all([
+    supabase.from("rest_days").select("employee_id").eq("owner_id", ownerId).eq("rest_date", iso),
+    supabase.from("rest_overrides").select("employee_id").eq("owner_id", ownerId).eq("new_date", iso),
+  ]);
+  const ids = [...(days ?? []), ...(ovr ?? [])]
+    .map((r) => (r as { employee_id: string }).employee_id)
+    .filter((id) => id !== excludeEmployeeId);
+  return ids[0] ?? null;
+}
