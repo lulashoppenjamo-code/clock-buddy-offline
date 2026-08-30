@@ -289,6 +289,7 @@ export type Database = {
           name: string
           owner_id: string
           pin: string
+          weekly_salary: number
         }
         Insert: {
           active?: boolean
@@ -300,6 +301,7 @@ export type Database = {
           name: string
           owner_id: string
           pin: string
+          weekly_salary?: number
         }
         Update: {
           active?: boolean
@@ -311,6 +313,7 @@ export type Database = {
           name?: string
           owner_id?: string
           pin?: string
+          weekly_salary?: number
         }
         Relationships: []
       }
@@ -1414,6 +1417,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      weekly_payments: {
+        Row: {
+          base_amount: number
+          created_at: string
+          employee_id: string
+          id: string
+          loan_amount: number
+          loan_note: string | null
+          owner_id: string
+          paid: boolean
+          paid_at: string | null
+          paid_by: string | null
+          total_amount: number | null
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          base_amount?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          loan_amount?: number
+          loan_note?: string | null
+          owner_id: string
+          paid?: boolean
+          paid_at?: string | null
+          paid_by?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          loan_amount?: number
+          loan_note?: string | null
+          owner_id?: string
+          paid?: boolean
+          paid_at?: string | null
+          paid_by?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
