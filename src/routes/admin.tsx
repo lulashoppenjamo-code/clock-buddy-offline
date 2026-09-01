@@ -8,7 +8,12 @@ import { ArrowLeft, Download, Loader2, RefreshCw, MapPin, Lock } from "lucide-re
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { AdminGate } from "@/components/AdminGate";
-import { lock } from "@/lib/admin-lock";
+import { lock, verifyAdminCode, setAdminCode } from "@/lib/admin-lock";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -188,6 +193,37 @@ function AdminPage({ ownerId }: { ownerId: string }) {
     navigate({ to: "/" });
   }
 
+  // --- Cambiar código de administrador ---
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [curCode, setCurCode] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newCode2, setNewCode2] = useState("");
+  const [changeBusy, setChangeBusy] = useState(false);
+
+  async function submitChangeCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(newCode)) {
+      toast.error("El nuevo código debe tener 4 a 8 dígitos");
+      return;
+    }
+    if (newCode !== newCode2) {
+      toast.error("Los códigos nuevos no coinciden");
+      return;
+    }
+    setChangeBusy(true);
+    const ok = await verifyAdminCode(ownerId, curCode);
+    if (!ok) {
+      setChangeBusy(false);
+      toast.error("El código actual es incorrecto");
+      return;
+    }
+    await setAdminCode(ownerId, newCode);
+    setChangeBusy(false);
+    setChangeOpen(false);
+    setCurCode(""); setNewCode(""); setNewCode2("");
+    toast.success("Código de administrador actualizado");
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center">
@@ -282,7 +318,59 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               📈 Ventas Agregadas
             </Button>
           </Link>
+          <Button variant="outline" className="w-full" onClick={() => setChangeOpen(true)}>
+            <KeyRound className="h-4 w-4" /> Cambiar código de administrador
+          </Button>
         </Card>
+
+        <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Cambiar código de administrador</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={submitChangeCode} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cur-code">Código actual</Label>
+                <Input
+                  id="cur-code"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={curCode}
+                  onChange={(e) => setCurCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-code">Código nuevo</Label>
+                <Input
+                  id="new-code"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-code2">Confirmar código nuevo</Label>
+                <Input
+                  id="new-code2"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={newCode2}
+                  onChange={(e) => setNewCode2(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={changeBusy}>
+                {changeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar nuevo código"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-2 gap-2">
           {employees.map((e) => {
