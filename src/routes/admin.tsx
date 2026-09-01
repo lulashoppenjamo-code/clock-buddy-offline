@@ -266,6 +266,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               🛌 Descansos
             </Button>
           </Link>
+          <Link to="/admin-pagos" className="block">
+            <Button className="w-full bg-cyan-600 hover:bg-cyan-700">
+              💵 Pagos Semanales
+            </Button>
+          </Link>
 
           <Link to="/clientes" className="block">
             <Button className="w-full bg-pink-600 hover:bg-pink-700">

@@ -425,6 +425,11 @@ function Index() {
             🛌 Descansos
           </Button>
         </Link>
+        <Link to="/pagos">
+          <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white">
+            💵 Mis Pagos
+          </Button>
+        </Link>
 
         <Link to="/clientes">
           <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
