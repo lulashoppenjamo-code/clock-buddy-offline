@@ -231,7 +231,8 @@ function PagosPanel({
               const row = byWeek[w];
               const future = w > today;
               const paid = !!row?.paid;
-              const hasLoan = Number(row?.loan_amount ?? 0) > 0;
+              const loan = Number(row?.loan_amount ?? 0);
+              const hasLoan = loan > 0;
               return (
                 <div
                   key={w}
@@ -240,7 +241,9 @@ function PagosPanel({
                   <div>
                     <p className="text-sm font-medium capitalize">{formatDateLong(w)}</p>
                     {hasLoan && (
-                      <p className="text-xs text-muted-foreground mt-0.5">Incluye préstamo</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Préstamo: ${loan.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      </p>
                     )}
                   </div>
                   {paid ? (
