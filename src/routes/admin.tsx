@@ -318,7 +318,59 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               📈 Ventas Agregadas
             </Button>
           </Link>
+          <Button variant="outline" className="w-full" onClick={() => setChangeOpen(true)}>
+            <KeyRound className="h-4 w-4" /> Cambiar código de administrador
+          </Button>
         </Card>
+
+        <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Cambiar código de administrador</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={submitChangeCode} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="cur-code">Código actual</Label>
+                <Input
+                  id="cur-code"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={curCode}
+                  onChange={(e) => setCurCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-code">Código nuevo</Label>
+                <Input
+                  id="new-code"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="new-code2">Confirmar código nuevo</Label>
+                <Input
+                  id="new-code2"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={newCode2}
+                  onChange={(e) => setNewCode2(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={changeBusy}>
+                {changeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar nuevo código"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-2 gap-2">
           {employees.map((e) => {
