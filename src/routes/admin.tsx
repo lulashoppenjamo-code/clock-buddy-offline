@@ -193,6 +193,37 @@ function AdminPage({ ownerId }: { ownerId: string }) {
     navigate({ to: "/" });
   }
 
+  // --- Cambiar código de administrador ---
+  const [changeOpen, setChangeOpen] = useState(false);
+  const [curCode, setCurCode] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newCode2, setNewCode2] = useState("");
+  const [changeBusy, setChangeBusy] = useState(false);
+
+  async function submitChangeCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(newCode)) {
+      toast.error("El nuevo código debe tener 4 a 8 dígitos");
+      return;
+    }
+    if (newCode !== newCode2) {
+      toast.error("Los códigos nuevos no coinciden");
+      return;
+    }
+    setChangeBusy(true);
+    const ok = await verifyAdminCode(ownerId, curCode);
+    if (!ok) {
+      setChangeBusy(false);
+      toast.error("El código actual es incorrecto");
+      return;
+    }
+    await setAdminCode(ownerId, newCode);
+    setChangeBusy(false);
+    setChangeOpen(false);
+    setCurCode(""); setNewCode(""); setNewCode2("");
+    toast.success("Código de administrador actualizado");
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center">
