@@ -8,7 +8,12 @@ import { ArrowLeft, Download, Loader2, RefreshCw, MapPin, Lock } from "lucide-re
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { AdminGate } from "@/components/AdminGate";
-import { lock } from "@/lib/admin-lock";
+import { lock, verifyAdminCode, setAdminCode } from "@/lib/admin-lock";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
