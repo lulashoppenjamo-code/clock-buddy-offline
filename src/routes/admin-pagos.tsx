@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save, HandCoins, Check, Undo2 } from "lucide-react";
+import { ArrowLeft, Loader2, Save, HandCoins, Check, Undo2, CalendarDays } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
 import { toISODate, todayISO, weekStart, formatDateLong } from "@/lib/rest-days";
 
@@ -68,6 +68,28 @@ export function paymentWeeks(): string[] {
 
 function money(n: number) {
   return n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+}
+
+function monthKey(date: string) {
+  return date.slice(0, 7);
+}
+
+function monthLabel(key: string) {
+  return new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(`${key}-01T12:00:00Z`),
+  );
+}
+
+function monthColor(date: string) {
+  const month = Number(date.slice(5, 7));
+  const colors = [
+    "border-l-chart-1 bg-chart-1/10",
+    "border-l-chart-2 bg-chart-2/10",
+    "border-l-chart-3 bg-chart-3/10",
+    "border-l-chart-4 bg-chart-4/10",
+    "border-l-chart-5 bg-chart-5/10",
+  ];
+  return colors[(month - 1) % colors.length];
 }
 
 function AdminPagosRoute() {
@@ -168,6 +190,12 @@ function AdminPagosPage({ ownerId }: { ownerId: string }) {
             {employees.map((e) => (
               <TabsContent key={e.id} value={e.id} className="space-y-4 mt-4">
                 <SalaryCard employee={e} onSaved={load} />
+                <MonthlyReport
+                  employee={e}
+                  weeks={weeks}
+                  today={today}
+                  payments={payments.filter((p) => p.employee_id === e.id)}
+                />
                 <WeeksList
                   employee={e}
                   ownerId={ownerId}
@@ -182,6 +210,65 @@ function AdminPagosPage({ ownerId }: { ownerId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+function MonthlyReport({
+  employee,
+  weeks,
+  today,
+  payments,
+}: {
+  employee: Employee;
+  weeks: string[];
+  today: string;
+  payments: WeeklyPayment[];
+}) {
+  const reports = useMemo(() => {
+    const byWeek = new Map(payments.map((payment) => [payment.week_start, payment]));
+    const byMonth = new Map<
+      string,
+      { weeks: number; paid: number; pending: number; total: number; loans: number }
+    >();
+
+    for (const week of weeks.filter((value) => value <= today)) {
+      const key = monthKey(week);
+      const payment = byWeek.get(week);
+      const base = Number(payment?.base_amount ?? employee.weekly_salary ?? 0);
+      const loan = Number(payment?.loan_amount ?? 0);
+      const current = byMonth.get(key) ?? { weeks: 0, paid: 0, pending: 0, total: 0, loans: 0 };
+      current.weeks += 1;
+      current.total += base + loan;
+      current.loans += loan;
+      if (payment?.paid) current.paid += 1;
+      else current.pending += 1;
+      byMonth.set(key, current);
+    }
+
+    return Array.from(byMonth.entries());
+  }, [employee.weekly_salary, payments, today, weeks]);
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium">Reporte mensual</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {reports.map(([month, report]) => (
+          <div key={month} className={`border border-l-4 p-3 ${monthColor(`${month}-01`)}`}>
+            <p className="text-sm font-semibold capitalize">{monthLabel(month)}</p>
+            <p className="mt-1 text-lg font-semibold">{money(report.total)}</p>
+            <p className="text-xs text-muted-foreground">
+              {report.weeks} semanas · {report.paid} pagadas · {report.pending} pendientes
+            </p>
+            {report.loans > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Préstamos: {money(report.loans)}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -365,7 +452,7 @@ function WeeksList({
           const total = baseAmt + loan;
           const paid = !!row?.paid;
           return (
-            <div key={w} className="rounded-lg border p-3 space-y-2">
+            <div key={w} className={`rounded-lg border border-l-4 p-3 space-y-2 ${monthColor(w)}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-medium capitalize">{formatDateLong(w)}</p>
