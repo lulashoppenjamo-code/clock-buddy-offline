@@ -48,6 +48,18 @@ function lastEightWeeks(): string[] {
   return weeks;
 }
 
+function monthColor(date: string) {
+  const month = Number(date.slice(5, 7));
+  const colors = [
+    "border-l-chart-1 bg-chart-1/10",
+    "border-l-chart-2 bg-chart-2/10",
+    "border-l-chart-3 bg-chart-3/10",
+    "border-l-chart-4 bg-chart-4/10",
+    "border-l-chart-5 bg-chart-5/10",
+  ];
+  return colors[(month - 1) % colors.length];
+}
+
 function PagosRoute() {
   const navigate = useNavigate();
   const [ownerId, setOwnerId] = useState<string | null>(null);
@@ -155,7 +167,8 @@ function PagosRoute() {
     );
   }
 
-  return <PagosPanel employee={selected} ownerId={ownerId!} onExit={() => setSelected(null)} />;
+  if (!ownerId) return null;
+  return <PagosPanel employee={selected} ownerId={ownerId} onExit={() => setSelected(null)} />;
 }
 
 function PagosPanel({
@@ -220,7 +233,10 @@ function PagosPanel({
               const paid = !!row?.paid;
               const hasLoan = Number(row?.loan_amount ?? 0) > 0;
               return (
-                <div key={w} className="rounded-lg border p-3 flex items-start justify-between gap-2">
+                <div
+                  key={w}
+                  className={`rounded-lg border border-l-4 p-3 flex items-start justify-between gap-2 ${monthColor(w)}`}
+                >
                   <div>
                     <p className="text-sm font-medium capitalize">{formatDateLong(w)}</p>
                     {hasLoan && (
