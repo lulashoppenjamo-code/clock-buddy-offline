@@ -147,6 +147,13 @@ function RankingPage() {
       setCleaning((c.data ?? []) as CleaningLog[]);
       setCustomers((cu.data ?? []) as CustomerRow[]);
       setEmployees((emps.data ?? []) as Employee[]);
+
+      const [scheds, rest] = await Promise.all([
+        fetchSchedules(ownerId),
+        fetchRestData(ownerId),
+      ]);
+      setSchedules(scheds);
+      setRestSet(restDaySet(month, new Date(), rest.schedules, rest.overrides, rest.bonuses));
       setLoading(false);
     })();
   }, [ownerId]);
