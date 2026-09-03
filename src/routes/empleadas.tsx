@@ -282,6 +282,14 @@ function EmployeesPage() {
                 </p>
               </div>
               <button
+                onClick={() => setScheduleFor(e)}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label="Horario"
+                title="Horario semanal"
+              >
+                <Clock className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => setEditing(e)}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 aria-label="Editar"
