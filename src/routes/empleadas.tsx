@@ -79,6 +79,7 @@ function EmployeesPage() {
   const [branch, setBranch] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [scheduleFor, setScheduleFor] = useState<Employee | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
