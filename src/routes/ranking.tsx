@@ -56,8 +56,6 @@ const BOARDS: { id: Board; label: string; emoji: string }[] = [
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-// Hora límite de entrada considerada puntual (hora local)
-const ON_TIME_HOUR = 10;
 
 type Employee = { id: string; name: string; color: string };
 type ClockIn = { employee_id: string; occurred_at: string };
