@@ -86,6 +86,8 @@ function RankingPage() {
   const [cleaning, setCleaning] = useState<CleaningLog[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
+  const [restSet, setRestSet] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<Period>("month");
   const [branch, setBranch] = useState<string>("all");
   const [board, setBoard] = useState<Board>("general");
