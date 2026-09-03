@@ -278,6 +278,50 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_schedules: {
+        Row: {
+          active: boolean
+          created_at: string
+          employee_id: string
+          end_time: string
+          id: string
+          owner_id: string
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          employee_id: string
+          end_time?: string
+          id?: string
+          owner_id: string
+          start_time?: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          employee_id?: string
+          end_time?: string
+          id?: string
+          owner_id?: string
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           active: boolean
