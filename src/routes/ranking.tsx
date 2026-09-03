@@ -205,14 +205,19 @@ function RankingPage() {
       r.ventas += 1;
       if (s.status === "validado") r.ventasValidadas += 1;
     }
+    const schedIdx = scheduleIndex(schedules);
     for (const t of clockIns) {
       const d = new Date(t.occurred_at);
       if (d < from) continue;
+      // Ignora días de descanso (habitual, cambio o domingo bono)
+      if (restSet.has(`${t.employee_id}|${toISODate(d)}`)) continue;
+      const evalRes = evaluateClockIn(d, schedIdx.get(`${t.employee_id}|${d.getDay()}`));
+      if (!evalRes) continue; // día no laborable según su horario
       const r = get(t.employee_id);
       r.checadas += 1;
-      const mins = d.getHours() * 60 + d.getMinutes();
-      r.minutosEntrada += mins;
-      if (mins <= ON_TIME_HOUR * 60) r.puntuales += 1;
+      r.minutosEntrada += d.getHours() * 60 + d.getMinutes();
+      r.retrasoTotal += evalRes.lateMinutes;
+      if (evalRes.onTime) r.puntuales += 1;
     }
     for (const c of cleaning) {
       if (new Date(c.completed_at) < from) continue;
