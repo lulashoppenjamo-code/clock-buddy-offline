@@ -8,9 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Plus, Loader2, Edit2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Loader2, Edit2, Clock } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WEEKDAYS } from "@/lib/rest-days";
+import {
+  DEFAULT_DRAFT,
+  TOLERANCE_MINUTES,
+  fetchSchedules,
+  saveSchedules,
+  trimTime,
+  type ScheduleDraft,
+} from "@/lib/schedule";
 
 export const Route = createFileRoute("/empleadas")({
   component: EmployeesRoute,
