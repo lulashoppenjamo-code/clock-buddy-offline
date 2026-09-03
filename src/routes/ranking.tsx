@@ -172,6 +172,7 @@ function RankingPage() {
         checadas: number;
         puntuales: number;
         minutosEntrada: number;
+        retrasoTotal: number;
         limpieza: number;
         clientes: number;
       }
@@ -188,6 +189,7 @@ function RankingPage() {
           checadas: 0,
           puntuales: 0,
           minutosEntrada: 0,
+          retrasoTotal: 0,
           limpieza: 0,
           clientes: 0,
         };
@@ -252,7 +254,7 @@ function RankingPage() {
             color: r.color,
             value: pct,
             detail: r.checadas
-              ? `${pct}% puntual · ${r.puntuales}/${r.checadas} · entrada prom. ${fmtTime(avg)}`
+              ? `${pct}% puntual · ${r.puntuales}/${r.checadas} · entrada prom. ${fmtTime(avg)} · retraso prom. ${Math.round(r.retrasoTotal / r.checadas)} min`
               : "Sin entradas registradas",
           };
         case "limpieza":
@@ -398,7 +400,7 @@ function RankingPage() {
               <p className="text-xs text-muted-foreground">
                 {BOARDS.find((b) => b.id === board)?.label} ·{" "}
                 {PERIOD_LABELS.find((p) => p.id === period)?.label.toLowerCase()}
-                {board === "puntualidad" && ` · entradas antes de las ${ON_TIME_HOUR}:00 AM`}
+                {board === "puntualidad" && ` · según el horario asignado, con ${TOLERANCE_MINUTES} min de tolerancia`}
                 {board === "general" &&
                   " · 3 pts venta validada, 2 pts limpieza y cliente, 1 pt entrada puntual"}
               </p>
