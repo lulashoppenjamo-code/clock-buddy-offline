@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Loader2, Trophy } from "lucide-react";
 import { BRANCHES, branchName, periodRanges, type AddonSale } from "@/lib/addon-sales";
+import { fetchRestData, toISODate } from "@/lib/rest-days";
+import {
+  TOLERANCE_MINUTES,
+  evaluateClockIn,
+  fetchSchedules,
+  restDaySet,
+  scheduleIndex,
+  type EmployeeSchedule,
+} from "@/lib/schedule";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({
@@ -47,8 +56,6 @@ const BOARDS: { id: Board; label: string; emoji: string }[] = [
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-// Hora límite de entrada considerada puntual (hora local)
-const ON_TIME_HOUR = 10;
 
 type Employee = { id: string; name: string; color: string };
 type ClockIn = { employee_id: string; occurred_at: string };
@@ -79,6 +86,8 @@ function RankingPage() {
   const [cleaning, setCleaning] = useState<CleaningLog[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
+  const [restSet, setRestSet] = useState<Set<string>>(new Set());
   const [period, setPeriod] = useState<Period>("month");
   const [branch, setBranch] = useState<string>("all");
   const [board, setBoard] = useState<Board>("general");
@@ -140,6 +149,13 @@ function RankingPage() {
       setCleaning((c.data ?? []) as CleaningLog[]);
       setCustomers((cu.data ?? []) as CustomerRow[]);
       setEmployees((emps.data ?? []) as Employee[]);
+
+      const [scheds, rest] = await Promise.all([
+        fetchSchedules(ownerId),
+        fetchRestData(ownerId),
+      ]);
+      setSchedules(scheds);
+      setRestSet(restDaySet(month, new Date(), rest.schedules, rest.overrides, rest.bonuses));
       setLoading(false);
     })();
   }, [ownerId]);
@@ -156,6 +172,7 @@ function RankingPage() {
         checadas: number;
         puntuales: number;
         minutosEntrada: number;
+        retrasoTotal: number;
         limpieza: number;
         clientes: number;
       }
@@ -172,6 +189,7 @@ function RankingPage() {
           checadas: 0,
           puntuales: 0,
           minutosEntrada: 0,
+          retrasoTotal: 0,
           limpieza: 0,
           clientes: 0,
         };
@@ -189,14 +207,19 @@ function RankingPage() {
       r.ventas += 1;
       if (s.status === "validado") r.ventasValidadas += 1;
     }
+    const schedIdx = scheduleIndex(schedules);
     for (const t of clockIns) {
       const d = new Date(t.occurred_at);
       if (d < from) continue;
+      // Ignora días de descanso (habitual, cambio o domingo bono)
+      if (restSet.has(`${t.employee_id}|${toISODate(d)}`)) continue;
+      const evalRes = evaluateClockIn(d, schedIdx.get(`${t.employee_id}|${d.getDay()}`));
+      if (!evalRes) continue; // día no laborable según su horario
       const r = get(t.employee_id);
       r.checadas += 1;
-      const mins = d.getHours() * 60 + d.getMinutes();
-      r.minutosEntrada += mins;
-      if (mins <= ON_TIME_HOUR * 60) r.puntuales += 1;
+      r.minutosEntrada += d.getHours() * 60 + d.getMinutes();
+      r.retrasoTotal += evalRes.lateMinutes;
+      if (evalRes.onTime) r.puntuales += 1;
     }
     for (const c of cleaning) {
       if (new Date(c.completed_at) < from) continue;
@@ -231,7 +254,7 @@ function RankingPage() {
             color: r.color,
             value: pct,
             detail: r.checadas
-              ? `${pct}% puntual · ${r.puntuales}/${r.checadas} · entrada prom. ${fmtTime(avg)}`
+              ? `${pct}% puntual · ${r.puntuales}/${r.checadas} · entrada prom. ${fmtTime(avg)} · retraso prom. ${Math.round(r.retrasoTotal / r.checadas)} min`
               : "Sin entradas registradas",
           };
         case "limpieza":
@@ -377,7 +400,7 @@ function RankingPage() {
               <p className="text-xs text-muted-foreground">
                 {BOARDS.find((b) => b.id === board)?.label} ·{" "}
                 {PERIOD_LABELS.find((p) => p.id === period)?.label.toLowerCase()}
-                {board === "puntualidad" && ` · entradas antes de las ${ON_TIME_HOUR}:00 AM`}
+                {board === "puntualidad" && ` · según el horario asignado, con ${TOLERANCE_MINUTES} min de tolerancia`}
                 {board === "general" &&
                   " · 3 pts venta validada, 2 pts limpieza y cliente, 1 pt entrada puntual"}
               </p>

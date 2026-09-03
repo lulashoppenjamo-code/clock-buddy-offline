@@ -8,9 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Plus, Loader2, Edit2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Loader2, Edit2, Clock } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { WEEKDAYS } from "@/lib/rest-days";
+import {
+  DEFAULT_DRAFT,
+  TOLERANCE_MINUTES,
+  fetchSchedules,
+  saveSchedules,
+  trimTime,
+  type ScheduleDraft,
+} from "@/lib/schedule";
 
 export const Route = createFileRoute("/empleadas")({
   component: EmployeesRoute,
@@ -70,6 +79,7 @@ function EmployeesPage() {
   const [branch, setBranch] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [scheduleFor, setScheduleFor] = useState<Employee | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -272,6 +282,14 @@ function EmployeesPage() {
                 </p>
               </div>
               <button
+                onClick={() => setScheduleFor(e)}
+                className="p-2 text-muted-foreground hover:text-foreground"
+                aria-label="Horario"
+                title="Horario semanal"
+              >
+                <Clock className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => setEditing(e)}
                 className="p-2 text-muted-foreground hover:text-foreground"
                 aria-label="Editar"
@@ -303,7 +321,125 @@ function EmployeesPage() {
           }}
         />
       )}
+
+      {scheduleFor && ownerId && (
+        <ScheduleDialog
+          ownerId={ownerId}
+          employee={scheduleFor}
+          onClose={() => setScheduleFor(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function ScheduleDialog({
+  ownerId,
+  employee,
+  onClose,
+}: {
+  ownerId: string;
+  employee: Employee;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<ScheduleDraft[]>(DEFAULT_DRAFT);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const all = await fetchSchedules(ownerId);
+      const mine = all.filter((s) => s.employee_id === employee.id);
+      if (mine.length) {
+        setDraft(
+          DEFAULT_DRAFT.map((d) => {
+            const found = mine.find((s) => s.weekday === d.weekday);
+            return found
+              ? {
+                  weekday: d.weekday,
+                  start_time: trimTime(found.start_time),
+                  end_time: trimTime(found.end_time),
+                  active: found.active,
+                }
+              : d;
+          }),
+        );
+      }
+      setLoading(false);
+    })();
+  }, [ownerId, employee.id]);
+
+  function update(weekday: number, patch: Partial<ScheduleDraft>) {
+    setDraft((prev) => prev.map((d) => (d.weekday === weekday ? { ...d, ...patch } : d)));
+  }
+
+  async function save() {
+    setBusy(true);
+    const { error } = await saveSchedules(ownerId, employee.id, draft);
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Horario guardado");
+    onClose();
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Horario semanal · {employee.name}</DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="py-8 grid place-items-center">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Este horario es la base de todas las semanas. Tolerancia de {TOLERANCE_MINUTES} minutos
+              para la puntualidad. Desactiva el día si no se labora (descanso).
+            </p>
+            {draft.map((d) => (
+              <div key={d.weekday} className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 w-28 shrink-0 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={d.active}
+                    onChange={(e) => update(d.weekday, { active: e.target.checked })}
+                  />
+                  {WEEKDAYS[d.weekday]}
+                </label>
+                <Input
+                  type="time"
+                  className="h-9"
+                  value={d.start_time}
+                  disabled={!d.active}
+                  onChange={(e) => update(d.weekday, { start_time: e.target.value })}
+                />
+                <span className="text-muted-foreground text-xs">a</span>
+                <Input
+                  type="time"
+                  className="h-9"
+                  value={d.end_time}
+                  disabled={!d.active}
+                  onChange={(e) => update(d.weekday, { end_time: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={busy || loading}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar horario"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
