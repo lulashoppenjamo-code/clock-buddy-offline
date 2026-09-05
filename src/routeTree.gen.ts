@@ -15,6 +15,7 @@ import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
+import { Route as FaltantesRouteImport } from './routes/faltantes'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as DescansosRouteImport } from './routes/descansos'
 import { Route as ClientesRouteImport } from './routes/clientes'
@@ -56,6 +57,11 @@ const LimpiezaRoute = LimpiezaRouteImport.update({
 const InsumosRoute = InsumosRouteImport.update({
   id: '/insumos',
   path: '/insumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaltantesRoute = FaltantesRouteImport.update({
+  id: '/faltantes',
+  path: '/faltantes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmpleadasRoute = EmpleadasRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   ClientesRoute: typeof ClientesRoute
   DescansosRoute: typeof DescansosRoute
   EmpleadasRoute: typeof EmpleadasRoute
+  FaltantesRoute: typeof FaltantesRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   PagosRoute: typeof PagosRoute
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/insumos'
       fullPath: '/insumos'
       preLoaderRoute: typeof InsumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faltantes': {
+      id: '/faltantes'
+      path: '/faltantes'
+      fullPath: '/faltantes'
+      preLoaderRoute: typeof FaltantesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/empleadas': {
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesRoute: ClientesRoute,
   DescansosRoute: DescansosRoute,
   EmpleadasRoute: EmpleadasRoute,
+  FaltantesRoute: FaltantesRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   PagosRoute: PagosRoute,
