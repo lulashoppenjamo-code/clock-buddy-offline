@@ -1098,6 +1098,53 @@ export type Database = {
           },
         ]
       }
+      shortage_reports: {
+        Row: {
+          branch: string
+          comment: string | null
+          created_at: string
+          employee_id: string
+          employee_name: string
+          id: string
+          items: string[]
+          owner_id: string
+          report_date: string
+          updated_at: string
+        }
+        Insert: {
+          branch: string
+          comment?: string | null
+          created_at?: string
+          employee_id: string
+          employee_name: string
+          id?: string
+          items?: string[]
+          owner_id: string
+          report_date?: string
+          updated_at?: string
+        }
+        Update: {
+          branch?: string
+          comment?: string | null
+          created_at?: string
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          items?: string[]
+          owner_id?: string
+          report_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shortage_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active: boolean
