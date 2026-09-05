@@ -15,6 +15,7 @@ import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
+import { Route as FaltantesRouteImport } from './routes/faltantes'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
 import { Route as DescansosRouteImport } from './routes/descansos'
 import { Route as ClientesRouteImport } from './routes/clientes'
@@ -24,6 +25,7 @@ import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminPagosRouteImport } from './routes/admin-pagos'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
 import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
+import { Route as AdminFaltantesRouteImport } from './routes/admin-faltantes'
 import { Route as AdminDescansosRouteImport } from './routes/admin-descansos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -56,6 +58,11 @@ const LimpiezaRoute = LimpiezaRouteImport.update({
 const InsumosRoute = InsumosRouteImport.update({
   id: '/insumos',
   path: '/insumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaltantesRoute = FaltantesRouteImport.update({
+  id: '/faltantes',
+  path: '/faltantes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmpleadasRoute = EmpleadasRouteImport.update({
@@ -103,6 +110,11 @@ const AdminInsumosRoute = AdminInsumosRouteImport.update({
   path: '/admin-insumos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFaltantesRoute = AdminFaltantesRouteImport.update({
+  id: '/admin-faltantes',
+  path: '/admin-faltantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDescansosRoute = AdminDescansosRouteImport.update({
   id: '/admin-descansos',
   path: '/admin-descansos',
@@ -123,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -132,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -143,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -152,6 +167,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -164,6 +180,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -173,6 +190,7 @@ export interface FileRoutesById {
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
+  '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
@@ -186,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -195,6 +214,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -206,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -215,6 +236,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -226,6 +248,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -235,6 +258,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/descansos'
     | '/empleadas'
+    | '/faltantes'
     | '/insumos'
     | '/limpieza'
     | '/pagos'
@@ -247,6 +271,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdminDescansosRoute: typeof AdminDescansosRoute
+  AdminFaltantesRoute: typeof AdminFaltantesRoute
   AdminInsumosRoute: typeof AdminInsumosRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AdminPagosRoute: typeof AdminPagosRoute
@@ -256,6 +281,7 @@ export interface RootRouteChildren {
   ClientesRoute: typeof ClientesRoute
   DescansosRoute: typeof DescansosRoute
   EmpleadasRoute: typeof EmpleadasRoute
+  FaltantesRoute: typeof FaltantesRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   PagosRoute: typeof PagosRoute
@@ -306,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/insumos'
       fullPath: '/insumos'
       preLoaderRoute: typeof InsumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faltantes': {
+      id: '/faltantes'
+      path: '/faltantes'
+      fullPath: '/faltantes'
+      preLoaderRoute: typeof FaltantesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/empleadas': {
@@ -371,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInsumosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-faltantes': {
+      id: '/admin-faltantes'
+      path: '/admin-faltantes'
+      fullPath: '/admin-faltantes'
+      preLoaderRoute: typeof AdminFaltantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin-descansos': {
       id: '/admin-descansos'
       path: '/admin-descansos'
@@ -399,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdminDescansosRoute: AdminDescansosRoute,
+  AdminFaltantesRoute: AdminFaltantesRoute,
   AdminInsumosRoute: AdminInsumosRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AdminPagosRoute: AdminPagosRoute,
@@ -408,6 +449,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesRoute: ClientesRoute,
   DescansosRoute: DescansosRoute,
   EmpleadasRoute: EmpleadasRoute,
+  FaltantesRoute: FaltantesRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   PagosRoute: PagosRoute,
