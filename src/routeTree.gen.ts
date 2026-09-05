@@ -25,6 +25,7 @@ import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminPagosRouteImport } from './routes/admin-pagos'
 import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
 import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
+import { Route as AdminFaltantesRouteImport } from './routes/admin-faltantes'
 import { Route as AdminDescansosRouteImport } from './routes/admin-descansos'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -109,6 +110,11 @@ const AdminInsumosRoute = AdminInsumosRouteImport.update({
   path: '/admin-insumos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminFaltantesRoute = AdminFaltantesRouteImport.update({
+  id: '/admin-faltantes',
+  path: '/admin-faltantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDescansosRoute = AdminDescansosRouteImport.update({
   id: '/admin-descansos',
   path: '/admin-descansos',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/admin-descansos': typeof AdminDescansosRoute
+  '/admin-faltantes': typeof AdminFaltantesRoute
   '/admin-insumos': typeof AdminInsumosRoute
   '/admin-limpieza': typeof AdminLimpiezaRoute
   '/admin-pagos': typeof AdminPagosRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/admin-descansos'
+    | '/admin-faltantes'
     | '/admin-insumos'
     | '/admin-limpieza'
     | '/admin-pagos'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdminDescansosRoute: typeof AdminDescansosRoute
+  AdminFaltantesRoute: typeof AdminFaltantesRoute
   AdminInsumosRoute: typeof AdminInsumosRoute
   AdminLimpiezaRoute: typeof AdminLimpiezaRoute
   AdminPagosRoute: typeof AdminPagosRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInsumosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-faltantes': {
+      id: '/admin-faltantes'
+      path: '/admin-faltantes'
+      fullPath: '/admin-faltantes'
+      preLoaderRoute: typeof AdminFaltantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin-descansos': {
       id: '/admin-descansos'
       path: '/admin-descansos'
@@ -419,6 +439,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdminDescansosRoute: AdminDescansosRoute,
+  AdminFaltantesRoute: AdminFaltantesRoute,
   AdminInsumosRoute: AdminInsumosRoute,
   AdminLimpiezaRoute: AdminLimpiezaRoute,
   AdminPagosRoute: AdminPagosRoute,
