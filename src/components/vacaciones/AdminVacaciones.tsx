@@ -23,13 +23,14 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export type AdminVacEmployee = {
+type Employee = {
   id: string;
   name: string;
   color: string;
   hire_date: string | null;
   branch: string | null;
 };
+export type AdminVacEmployee = Employee;
 
 export function AdminVacaciones({ ownerId }: { ownerId: string }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
