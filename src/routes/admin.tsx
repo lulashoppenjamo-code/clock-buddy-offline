@@ -292,6 +292,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               📦 Solicitudes de Insumos
             </Button>
           </Link>
+          <Link to="/admin-faltantes" className="block">
+            <Button className="w-full bg-slate-700 hover:bg-slate-800">
+              📦 Faltantes / Surtido
+            </Button>
+          </Link>
           <Link to="/admin-vacaciones" className="block">
             <Button className="w-full bg-teal-600 hover:bg-teal-700">
               🌴 Vacaciones

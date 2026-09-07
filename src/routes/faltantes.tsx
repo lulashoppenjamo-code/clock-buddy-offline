@@ -12,7 +12,10 @@ import {
   BRANCHES,
   branchName,
   formatDayLabel,
+  markReminderShown,
+  notifyReminder,
   parseItems,
+  shouldRemindNow,
   todayISO,
   type Branch,
   type ShortageReport,
@@ -143,6 +146,11 @@ function FaltantesRoute() {
       if (today) {
         setText(today.items.join("\n"));
         setComment(today.comment ?? "");
+      } else if (shouldRemindNow()) {
+        markReminderShown();
+        notifyReminder(
+          `${employee.name}, recuerda enviar tu reporte de faltantes de hoy.`,
+        );
       }
     })();
   }, [ownerId, employee]);
