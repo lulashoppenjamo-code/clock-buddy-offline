@@ -14,14 +14,12 @@ import { computeBalance, daysBetween, type Balance, type VacationRequest } from 
 
 export type VacEmployee = { id: string; name: string; hire_date?: string | null };
 
-function VacacionesPanel({
+export function EmployeeVacaciones({
   employee,
   ownerId,
-  onExit,
 }: {
-  employee: Employee;
+  employee: VacEmployee;
   ownerId: string;
-  onExit: () => void;
 }) {
   const [balance, setBalance] = useState<Balance | null>(null);
   const [requests, setRequests] = useState<VacationRequest[]>([]);
@@ -33,7 +31,7 @@ function VacacionesPanel({
   const days = useMemo(() => daysBetween(start, end), [start, end]);
 
   async function load() {
-    const b = await computeBalance(ownerId, employee.id, employee.hire_date);
+    const b = await computeBalance(ownerId, employee.id, (employee.hire_date ?? null));
     setBalance(b);
     const { data } = await supabase
       .from("vacation_requests")
@@ -61,7 +59,7 @@ function VacacionesPanel({
   }, [employee.id]);
 
   async function submit() {
-    if (!employee.hire_date) {
+    if (!(employee.hire_date ?? null)) {
       toast.error("Pide al administrador que registre tu fecha de ingreso");
       return;
     }
@@ -105,23 +103,15 @@ function VacacionesPanel({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-emerald-50">
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <button onClick={onExit} className="flex items-center gap-1 text-sm">
-          <ArrowLeft className="h-4 w-4" /> Salir
-        </button>
-        <h1 className="font-semibold">🌴 {employee.name}</h1>
-        <span />
-      </header>
-
-      <div className="max-w-md mx-auto p-4 space-y-4">
+    <div className="space-y-4">
+      <div className="space-y-4">
         <Card className="p-4">
           <div className="grid grid-cols-3 gap-2 text-center">
             <Stat label="Antigüedad" value={`${balance?.seniorityYears ?? 0} año(s)`} />
             <Stat label="Disponibles" value={`${balance?.available ?? 0}`} accent />
             <Stat label="Usados" value={`${balance?.used ?? 0}`} />
           </div>
-          {!employee.hire_date && (
+          {!(employee.hire_date ?? null) && (
             <p className="mt-3 text-xs text-amber-700 bg-amber-50 p-2 rounded">
               Tu fecha de ingreso no está registrada. Pide al administrador que la configure.
             </p>
