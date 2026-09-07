@@ -415,6 +415,11 @@ function Index() {
             📦 Solicitar Insumos
           </Button>
         </Link>
+        <Link to="/faltantes">
+          <Button size="sm" className="bg-slate-700 hover:bg-slate-800 text-white">
+            📦 Faltantes
+          </Button>
+        </Link>
         <Link to="/vacaciones">
           <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
             🌴 Vacaciones
