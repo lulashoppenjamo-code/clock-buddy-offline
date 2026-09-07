@@ -62,16 +62,35 @@ export const Route = createFileRoute("/admin-faltantes")({
 type Employee = { id: string; name: string; color: string; branch: string | null };
 
 function AdminFaltantesRoute() {
+  const navigate = useNavigate();
+  const [uid, setUid] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const id = data.session?.user.id ?? null;
+      if (!id) {
+        navigate({ to: "/auth" });
+        return;
+      }
+      setUid(id);
+      setChecking(false);
+    });
+  }, [navigate]);
+  if (checking || !uid) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-pink-50">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   return (
-    <AdminGate>
-      <Inner />
+    <AdminGate ownerId={uid}>
+      <Inner ownerId={uid} />
     </AdminGate>
   );
 }
 
-function Inner() {
-  const navigate = useNavigate();
-  const [ownerId, setOwnerId] = useState<string | null>(null);
+function Inner({ ownerId }: { ownerId: string }) {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [reports, setReports] = useState<ShortageReport[]>([]);
@@ -86,23 +105,16 @@ function Inner() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user.id ?? null;
-      if (!uid) {
-        navigate({ to: "/auth" });
-        return;
-      }
-      setOwnerId(uid);
       const { data: emps } = await supabase
         .from("employees")
         .select("id,name,color,branch")
-        .eq("owner_id", uid)
+        .eq("owner_id", ownerId)
         .eq("active", true)
         .order("name");
       setEmployees((emps ?? []) as Employee[]);
       setLoading(false);
     })();
-  }, [navigate]);
+  }, [ownerId]);
 
   const load = useCallback(async () => {
     if (!ownerId) return;
