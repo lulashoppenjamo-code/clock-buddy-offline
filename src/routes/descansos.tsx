@@ -28,6 +28,7 @@ import {
   type RestDay,
   type RestChangeRequest,
 } from "@/lib/rest-days";
+import { EmployeeVacaciones } from "@/components/vacaciones/EmployeeVacaciones";
 
 export const Route = createFileRoute("/descansos")({
   head: () => ({
@@ -49,7 +50,7 @@ export const Route = createFileRoute("/descansos")({
   component: DescansosRoute,
 });
 
-type Employee = { id: string; name: string; pin: string; color: string; branch: string | null };
+type Employee = { id: string; name: string; pin: string; color: string; branch: string | null; hire_date: string | null };
 
 function DescansosRoute() {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ function DescansosRoute() {
       if (ownerForLoad) {
         const { data: emps } = await supabase
           .from("employees")
-          .select("id,name,pin,color,branch")
+          .select("id,name,pin,color,branch,hire_date")
           .eq("owner_id", ownerForLoad)
           .eq("active", true)
           .order("name");
@@ -114,7 +115,7 @@ function DescansosRoute() {
           <Link to="/" className="flex items-center gap-1 text-white/70">
             <ArrowLeft className="h-4 w-4" /> Volver
           </Link>
-          <span className="font-medium">🛌 Descansos</span>
+          <span className="font-medium">🛌 Descansos y vacaciones</span>
           <span />
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
@@ -225,7 +226,7 @@ function DescansosPanel({
         <button onClick={onExit} className="flex items-center gap-1 text-sm">
           <ArrowLeft className="h-4 w-4" /> Salir
         </button>
-        <h1 className="font-semibold">🛌 {employee.name}</h1>
+        <h1 className="font-semibold">🛌🌴 {employee.name}</h1>
         <span />
       </header>
 
@@ -267,7 +268,12 @@ function DescansosPanel({
               )}
             </TabsTrigger>
             <TabsTrigger value="bonos" className="flex-1">Bonos</TabsTrigger>
+            <TabsTrigger value="vacaciones" className="flex-1">🌴 Vacaciones</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="vacaciones" className="pt-3">
+            <EmployeeVacaciones employee={employee} ownerId={ownerId} />
+          </TabsContent>
 
           <TabsContent value="equipo" className="pt-3">
             <TeamCalendar
