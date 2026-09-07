@@ -27,6 +27,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
+import { AdminVacaciones } from "@/components/vacaciones/AdminVacaciones";
 import {
   WEEKDAYS,
   BRANCHES,
@@ -164,7 +165,7 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
         <Link to="/admin" className="flex items-center gap-1 text-sm">
           <ArrowLeft className="h-4 w-4" /> Volver
         </Link>
-        <h1 className="font-semibold">🛌 Descansos</h1>
+        <h1 className="font-semibold">🛌🌴 Descansos y vacaciones</h1>
         <span />
       </header>
 
@@ -182,7 +183,12 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
               )}
             </TabsTrigger>
             <TabsTrigger value="historial" className="flex-1">Historial</TabsTrigger>
+            <TabsTrigger value="vacaciones" className="flex-1">🌴 Vacaciones</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="vacaciones" className="pt-3">
+            <AdminVacaciones ownerId={ownerId} />
+          </TabsContent>
 
           <TabsContent value="habitual" className="pt-3">
             <HabitualTab
