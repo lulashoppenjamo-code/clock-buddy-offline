@@ -297,14 +297,9 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               📦 Faltantes / Surtido
             </Button>
           </Link>
-          <Link to="/admin-vacaciones" className="block">
-            <Button className="w-full bg-teal-600 hover:bg-teal-700">
-              🌴 Vacaciones
-            </Button>
-          </Link>
           <Link to="/admin-descansos" className="block">
             <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
-              🛌 Descansos
+              🛌🌴 Descansos y Vacaciones
             </Button>
           </Link>
           <Link to="/admin-pagos" className="block">
