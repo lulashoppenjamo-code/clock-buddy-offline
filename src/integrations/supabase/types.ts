@@ -817,6 +817,59 @@ export type Database = {
           },
         ]
       }
+      perfume_sales: {
+        Row: {
+          branch: string
+          comment: string | null
+          created_at: string
+          employee_id: string
+          employee_name: string
+          id: string
+          owner_id: string
+          perfume_name: string
+          quantity: number
+          sold_at: string
+          ticket_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          branch: string
+          comment?: string | null
+          created_at?: string
+          employee_id: string
+          employee_name: string
+          id?: string
+          owner_id: string
+          perfume_name: string
+          quantity?: number
+          sold_at?: string
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          branch?: string
+          comment?: string | null
+          created_at?: string
+          employee_id?: string
+          employee_name?: string
+          id?: string
+          owner_id?: string
+          perfume_name?: string
+          quantity?: number
+          sold_at?: string
+          ticket_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfume_sales_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           active: boolean
