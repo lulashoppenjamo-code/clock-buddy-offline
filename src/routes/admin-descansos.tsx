@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { AdminGate } from "@/components/AdminGate";
 import { AdminVacaciones } from "@/components/vacaciones/AdminVacaciones";
+import { UnifiedCalendar } from "@/components/UnifiedCalendar";
 import {
   WEEKDAYS,
   BRANCHES,
@@ -221,12 +222,13 @@ function AdminDescansosPage({ ownerId }: { ownerId: string }) {
           </TabsContent>
 
           <TabsContent value="calendario" className="pt-3">
-            <CalendarTab
+            <UnifiedCalendar
+              ownerId={ownerId}
               employees={employees}
-              empById={empById}
               schedules={schedules}
               overrides={overrides}
               bonuses={bonuses}
+              note="Descansos, cambios, domingos bono y vacaciones en un solo calendario"
             />
           </TabsContent>
 
@@ -680,114 +682,6 @@ function BonoTab({
         })}
       </div>
     </div>
-  );
-}
-
-/* ------------------------------ Calendario ------------------------------ */
-
-function CalendarTab({
-  employees,
-  empById,
-  schedules,
-  overrides,
-  bonuses,
-}: {
-  employees: Employee[];
-  empById: Record<string, Employee>;
-  schedules: RestSchedule[];
-  overrides: RestOverride[];
-  bonuses: RestDay[];
-}) {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
-
-  const days = useMemo(() => monthGrid(year, month), [year, month]);
-  const marks = useMemo(
-    () => buildCalendar(days, schedules, overrides, bonuses),
-    [days, schedules, overrides, bonuses],
-  );
-
-  function shift(delta: number) {
-    const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-  }
-
-  const label = new Date(year, month, 1).toLocaleDateString("es-MX", {
-    month: "long",
-    year: "numeric",
-  });
-
-  return (
-    <Card className="p-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <Button size="icon" variant="ghost" onClick={() => shift(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <p className="font-medium capitalize">{label}</p>
-        <Button size="icon" variant="ghost" onClick={() => shift(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-center text-muted-foreground">
-        {WEEKDAYS.map((w) => (
-          <div key={w}>{w.slice(0, 3)}</div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((d) => {
-          const iso = toISODate(d);
-          const inMonth = d.getMonth() === month;
-          const list = marks[iso] ?? [];
-          return (
-            <div
-              key={iso}
-              className={`min-h-16 rounded-md border p-1 ${inMonth ? "bg-white" : "bg-muted/40 opacity-60"}`}
-            >
-              <p className="text-[10px] text-muted-foreground">{d.getDate()}</p>
-              <div className="space-y-0.5">
-                {list.map((m, i) => {
-                  const e = empById[m.employeeId];
-                  if (!e) return null;
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-0.5 text-[9px] rounded px-0.5 truncate"
-                      style={{
-                        backgroundColor: `${e.color}22`,
-                        color: e.color,
-                        border: m.kind === "cambio" ? `1px dashed ${e.color}` : undefined,
-                      }}
-                      title={`${e.name} — ${m.kind}${m.reason ? `: ${m.reason}` : ""}`}
-                    >
-                      <span>{m.kind === "cambio" ? "🔁" : m.kind === "bono" ? "🎁" : "🛌"}</span>
-                      <span className="truncate">{e.name.split(" ")[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground pt-1">
-        <span>🛌 Habitual</span>
-        <span>🔁 Cambio programado</span>
-        <span>🎁 Domingo bono</span>
-      </div>
-      <div className="flex flex-wrap gap-2 pt-1">
-        {employees.map((e) => (
-          <span key={e.id} className="flex items-center gap-1 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
-            {e.name}
-          </span>
-        ))}
-      </div>
-    </Card>
   );
 }
 

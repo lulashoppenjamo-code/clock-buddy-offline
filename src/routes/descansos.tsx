@@ -28,6 +28,7 @@ import {
   type RestDay,
   type RestChangeRequest,
 } from "@/lib/rest-days";
+import { UnifiedCalendar } from "@/components/UnifiedCalendar";
 import { EmployeeVacaciones } from "@/components/vacaciones/EmployeeVacaciones";
 
 export const Route = createFileRoute("/descansos")({
@@ -276,12 +277,13 @@ function DescansosPanel({
           </TabsContent>
 
           <TabsContent value="equipo" className="pt-3">
-            <TeamCalendar
+            <UnifiedCalendar
+              ownerId={ownerId}
               employees={allEmployees}
               schedules={allSchedules}
               overrides={allOverrides}
               bonuses={allBonuses}
-              highlightId={employee.id}
+              note="Descansos, cambios, domingos bono y vacaciones del equipo"
             />
           </TabsContent>
 
@@ -397,123 +399,6 @@ function DescansosPanel({
       />
 
     </div>
-  );
-}
-
-/* ------------------------------ Calendario de equipo ------------------------------ */
-
-function TeamCalendar({
-  employees,
-  schedules,
-  overrides,
-  bonuses,
-  highlightId,
-}: {
-  employees: Employee[];
-  schedules: RestSchedule[];
-  overrides: RestOverride[];
-  bonuses: RestDay[];
-  highlightId: string;
-}) {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth());
-
-  const days = useMemo(() => monthGrid(year, month), [year, month]);
-  const marks = useMemo(
-    () => buildCalendar(days, schedules, overrides, bonuses),
-    [days, schedules, overrides, bonuses],
-  );
-  const empById = useMemo(() => {
-    const m: Record<string, Employee> = {};
-    for (const e of employees) m[e.id] = e;
-    return m;
-  }, [employees]);
-
-  function shift(delta: number) {
-    const d = new Date(year, month + delta, 1);
-    setYear(d.getFullYear());
-    setMonth(d.getMonth());
-  }
-
-  const label = new Date(year, month, 1).toLocaleDateString("es-MX", {
-    month: "long",
-    year: "numeric",
-  });
-
-  return (
-    <Card className="p-3 space-y-3">
-      <p className="text-xs text-muted-foreground text-center">
-        Aquí ves cuándo descansa cada quien para planear tu solicitud
-      </p>
-      <div className="flex items-center justify-between">
-        <Button size="icon" variant="ghost" onClick={() => shift(-1)}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <p className="font-medium capitalize">{label}</p>
-        <Button size="icon" variant="ghost" onClick={() => shift(1)}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-center text-muted-foreground">
-        {WEEKDAYS.map((w) => (
-          <div key={w}>{w.slice(0, 3)}</div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {days.map((d) => {
-          const iso = toISODate(d);
-          const inMonth = d.getMonth() === month;
-          const list = marks[iso] ?? [];
-          return (
-            <div
-              key={iso}
-              className={`min-h-16 rounded-md border p-1 ${inMonth ? "bg-white" : "bg-muted/40 opacity-60"}`}
-            >
-              <p className="text-[10px] text-muted-foreground">{d.getDate()}</p>
-              <div className="space-y-0.5">
-                {list.map((m, i) => {
-                  const e = empById[m.employeeId];
-                  if (!e) return null;
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-0.5 text-[9px] rounded px-0.5 truncate"
-                      style={{
-                        backgroundColor: `${e.color}22`,
-                        color: e.color,
-                        border:
-                          m.kind === "cambio"
-                            ? `1px dashed ${e.color}`
-                            : e.id === highlightId
-                              ? `1px solid ${e.color}`
-                              : undefined,
-                      }}
-                      title={`${e.name} — ${m.kind}${m.reason ? `: ${m.reason}` : ""}`}
-                    >
-                      <span>{m.kind === "cambio" ? "🔁" : m.kind === "bono" ? "🎁" : "🛌"}</span>
-                      <span className="truncate">{e.name.split(" ")[0]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-wrap gap-2 pt-1">
-        {employees.map((e) => (
-          <span key={e.id} className="flex items-center gap-1 text-xs">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: e.color }} />
-            {e.name}
-            {e.id === highlightId && <span className="text-muted-foreground">(tú)</span>}
-          </span>
-        ))}
-      </div>
-    </Card>
   );
 }
 

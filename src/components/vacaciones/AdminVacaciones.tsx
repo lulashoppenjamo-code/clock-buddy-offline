@@ -91,7 +91,6 @@ export function AdminVacaciones({ ownerId }: { ownerId: string }) {
           <TabsList className="w-full overflow-auto">
             <TabsTrigger value="requests">Solicitudes</TabsTrigger>
             <TabsTrigger value="balances">Saldos</TabsTrigger>
-            <TabsTrigger value="calendar">Calendario</TabsTrigger>
             <TabsTrigger value="history">Historial</TabsTrigger>
           </TabsList>
 
@@ -106,10 +105,6 @@ export function AdminVacaciones({ ownerId }: { ownerId: string }) {
 
           <TabsContent value="balances" className="pt-3">
             <BalancesTab ownerId={ownerId} employees={employees} reload={load} />
-          </TabsContent>
-
-          <TabsContent value="calendar" className="pt-3">
-            <CalendarTab employees={employees} requests={requests} />
           </TabsContent>
 
           <TabsContent value="history" className="pt-3">
