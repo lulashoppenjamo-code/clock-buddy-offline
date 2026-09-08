@@ -420,14 +420,9 @@ function Index() {
             📦 Faltantes
           </Button>
         </Link>
-        <Link to="/vacaciones">
-          <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
-            🌴 Vacaciones
-          </Button>
-        </Link>
         <Link to="/descansos">
           <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
-            🛌 Descansos
+            🛌🌴 Descansos y Vacaciones
           </Button>
         </Link>
         <Link to="/pagos">
