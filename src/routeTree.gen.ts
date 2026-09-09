@@ -14,6 +14,7 @@ import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PerfumesRouteImport } from './routes/perfumes'
 import { Route as PagosRouteImport } from './routes/pagos'
+import { Route as MetaMensualRouteImport } from './routes/meta-mensual'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as FaltantesRouteImport } from './routes/faltantes'
@@ -54,6 +55,11 @@ const PerfumesRoute = PerfumesRouteImport.update({
 const PagosRoute = PagosRouteImport.update({
   id: '/pagos',
   path: '/pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetaMensualRoute = MetaMensualRouteImport.update({
+  id: '/meta-mensual',
+  path: '/meta-mensual',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LimpiezaRoute = LimpiezaRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/meta-mensual': typeof MetaMensualRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/meta-mensual': typeof MetaMensualRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/faltantes': typeof FaltantesRoute
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
+  '/meta-mensual': typeof MetaMensualRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/faltantes'
     | '/insumos'
     | '/limpieza'
+    | '/meta-mensual'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/faltantes'
     | '/insumos'
     | '/limpieza'
+    | '/meta-mensual'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/faltantes'
     | '/insumos'
     | '/limpieza'
+    | '/meta-mensual'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -296,6 +308,7 @@ export interface RootRouteChildren {
   FaltantesRoute: typeof FaltantesRoute
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
+  MetaMensualRoute: typeof MetaMensualRoute
   PagosRoute: typeof PagosRoute
   PerfumesRoute: typeof PerfumesRoute
   RankingRoute: typeof RankingRoute
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/pagos'
       fullPath: '/pagos'
       preLoaderRoute: typeof PagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meta-mensual': {
+      id: '/meta-mensual'
+      path: '/meta-mensual'
+      fullPath: '/meta-mensual'
+      preLoaderRoute: typeof MetaMensualRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/limpieza': {
@@ -472,6 +492,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaltantesRoute: FaltantesRoute,
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
+  MetaMensualRoute: MetaMensualRoute,
   PagosRoute: PagosRoute,
   PerfumesRoute: PerfumesRoute,
   RankingRoute: RankingRoute,
