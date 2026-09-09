@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Loader2, Trophy } from "lucide-react";
 import { BRANCHES, branchName, periodRanges, type AddonSale } from "@/lib/addon-sales";
+import { PERFUME_GOAL, monthLabel, monthRange, rankGoal } from "@/lib/perfumes";
 import { fetchRestData, toISODate } from "@/lib/rest-days";
 import {
   TOLERANCE_MINUTES,
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/ranking")({
 });
 
 type Period = "day" | "week" | "month";
-type Board = "general" | "ventas" | "puntualidad" | "limpieza" | "clientes";
+type Board = "general" | "ventas" | "perfumes" | "puntualidad" | "limpieza" | "clientes";
 
 const PERIOD_LABELS: { id: Period; label: string }[] = [
   { id: "day", label: "Hoy" },
@@ -49,6 +50,7 @@ const PERIOD_LABELS: { id: Period; label: string }[] = [
 const BOARDS: { id: Board; label: string; emoji: string }[] = [
   { id: "general", label: "General", emoji: "🏆" },
   { id: "ventas", label: "Ventas", emoji: "📈" },
+  { id: "perfumes", label: "Perfumes", emoji: "🧴" },
   { id: "puntualidad", label: "Puntualidad", emoji: "⏰" },
   { id: "limpieza", label: "Limpieza", emoji: "✨" },
   { id: "clientes", label: "Clientes", emoji: "💖" },
@@ -61,6 +63,13 @@ type Employee = { id: string; name: string; color: string };
 type ClockIn = { employee_id: string; occurred_at: string };
 type CleaningLog = { employee_id: string; completed_at: string; branch: string };
 type CustomerRow = { registered_by_id: string | null; created_at: string };
+type PerfumeRow = {
+  employee_id: string;
+  employee_name: string;
+  quantity: number;
+  sold_at: string;
+  branch: string;
+};
 
 type Row = {
   id: string;
@@ -85,6 +94,7 @@ function RankingPage() {
   const [clockIns, setClockIns] = useState<ClockIn[]>([]);
   const [cleaning, setCleaning] = useState<CleaningLog[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [perfumes, setPerfumes] = useState<PerfumeRow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
   const [restSet, setRestSet] = useState<Set<string>>(new Set());
@@ -111,7 +121,7 @@ function RankingPage() {
       setLoading(true);
       const { month } = periodRanges();
       const since = month.toISOString();
-      const [s, t, c, cu, emps] = await Promise.all([
+      const [s, t, c, cu, emps, pf] = await Promise.all([
         supabase
           .from("addon_sales")
           .select("*")
@@ -143,12 +153,19 @@ function RankingPage() {
           .eq("owner_id", ownerId)
           .eq("active", true)
           .order("name"),
+        supabase
+          .from("perfume_sales")
+          .select("employee_id,employee_name,quantity,sold_at,branch")
+          .eq("owner_id", ownerId)
+          .gte("sold_at", since)
+          .limit(3000),
       ]);
       setSales((s.data ?? []) as AddonSale[]);
       setClockIns((t.data ?? []) as ClockIn[]);
       setCleaning((c.data ?? []) as CleaningLog[]);
       setCustomers((cu.data ?? []) as CustomerRow[]);
       setEmployees((emps.data ?? []) as Employee[]);
+      setPerfumes((pf.data ?? []) as PerfumeRow[]);
 
       const [scheds, rest] = await Promise.all([
         fetchSchedules(ownerId),
@@ -175,6 +192,7 @@ function RankingPage() {
         retrasoTotal: number;
         limpieza: number;
         clientes: number;
+        perfumes: number;
       }
     >();
     const get = (id: string, name?: string) => {
@@ -192,6 +210,7 @@ function RankingPage() {
           retrasoTotal: 0,
           limpieza: 0,
           clientes: 0,
+          perfumes: 0,
         };
         base.set(id, cur);
       }
@@ -226,13 +245,18 @@ function RankingPage() {
       if (branch !== "all" && c.branch !== branch) continue;
       get(c.employee_id).limpieza += 1;
     }
+    for (const p of perfumes) {
+      if (new Date(p.sold_at) < from) continue;
+      if (branch !== "all" && p.branch !== branch) continue;
+      get(p.employee_id, p.employee_name).perfumes += p.quantity ?? 0;
+    }
     for (const c of customers) {
       if (!c.registered_by_id) continue;
       if (new Date(c.created_at) < from) continue;
       get(c.registered_by_id).clientes += 1;
     }
     return base;
-  }, [sales, clockIns, cleaning, customers, employees, period, branch]);
+  }, [sales, clockIns, cleaning, customers, perfumes, employees, period, branch, schedules, restSet]);
 
   const rows: Row[] = useMemo(() => {
     const list = [...stats.entries()].map(([id, r]) => {
@@ -246,6 +270,14 @@ function RankingPage() {
             color: r.color,
             value: r.ventas,
             detail: `${r.ventas} registro(s) · ${r.ventasValidadas} validada(s)`,
+          };
+        case "perfumes":
+          return {
+            id,
+            name: r.name,
+            color: r.color,
+            value: r.perfumes,
+            detail: `${r.perfumes} perfume(s) vendido(s)`,
           };
         case "puntualidad":
           return {

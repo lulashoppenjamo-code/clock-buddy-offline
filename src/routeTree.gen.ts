@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VentasRouteImport } from './routes/ventas'
 import { Route as VacacionesRouteImport } from './routes/vacaciones'
 import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as PerfumesRouteImport } from './routes/perfumes'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as InsumosRouteImport } from './routes/insumos'
@@ -43,6 +44,11 @@ const VacacionesRoute = VacacionesRouteImport.update({
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfumesRoute = PerfumesRouteImport.update({
+  id: '/perfumes',
+  path: '/perfumes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagosRoute = PagosRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
+  '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
+  '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/pagos': typeof PagosRoute
+  '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
   '/vacaciones': typeof VacacionesRoute
   '/ventas': typeof VentasRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/pagos'
+    | '/perfumes'
     | '/ranking'
     | '/vacaciones'
     | '/ventas'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/pagos'
+    | '/perfumes'
     | '/ranking'
     | '/vacaciones'
     | '/ventas'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/pagos'
+    | '/perfumes'
     | '/ranking'
     | '/vacaciones'
     | '/ventas'
@@ -285,6 +297,7 @@ export interface RootRouteChildren {
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   PagosRoute: typeof PagosRoute
+  PerfumesRoute: typeof PerfumesRoute
   RankingRoute: typeof RankingRoute
   VacacionesRoute: typeof VacacionesRoute
   VentasRoute: typeof VentasRoute
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       path: '/ranking'
       fullPath: '/ranking'
       preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfumes': {
+      id: '/perfumes'
+      path: '/perfumes'
+      fullPath: '/perfumes'
+      preLoaderRoute: typeof PerfumesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagos': {
@@ -453,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   PagosRoute: PagosRoute,
+  PerfumesRoute: PerfumesRoute,
   RankingRoute: RankingRoute,
   VacacionesRoute: VacacionesRoute,
   VentasRoute: VentasRoute,
