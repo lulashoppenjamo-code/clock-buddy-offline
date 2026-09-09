@@ -441,6 +441,11 @@ function Index() {
             📈 Ventas Agregadas
           </Button>
         </Link>
+        <Link to="/perfumes">
+          <Button size="sm" className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white">
+            🧴 Perfumes
+          </Button>
+        </Link>
         <Link to="/ranking">
           <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
             🏆 Ranking
