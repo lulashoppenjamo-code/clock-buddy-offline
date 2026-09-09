@@ -349,6 +349,47 @@ function RankingPage() {
 
   const unit = board === "puntualidad" ? "%" : "";
 
+  // Meta mensual del domingo bono (1 al último día del mes en curso)
+  const goal = useMemo(() => {
+    const { start, end } = monthRange();
+    const inMonth = (iso: string) => {
+      const d = new Date(iso);
+      return d >= start && d <= end;
+    };
+    const map = new Map<
+      string,
+      { id: string; name: string; color: string; perfumes: number; ventas: number; qualified: boolean }
+    >();
+    const get = (id: string, name?: string) => {
+      let cur = map.get(id);
+      if (!cur) {
+        const emp = employees.find((e) => e.id === id);
+        cur = {
+          id,
+          name: emp?.name ?? name ?? "Colaboradora",
+          color: emp?.color ?? "#ec4899",
+          perfumes: 0,
+          ventas: 0,
+          qualified: false,
+        };
+        map.set(id, cur);
+      }
+      return cur;
+    };
+    for (const e of employees) get(e.id);
+    for (const s of sales) {
+      if (s.status === "rechazado") continue;
+      if (!inMonth(s.sold_at)) continue;
+      get(s.employee_id, s.employee_name).ventas += 1;
+    }
+    for (const p of perfumes) {
+      if (!inMonth(p.sold_at)) continue;
+      get(p.employee_id, p.employee_name).perfumes += p.quantity ?? 0;
+    }
+    for (const r of map.values()) r.qualified = r.perfumes >= PERFUME_GOAL;
+    return rankGoal([...map.values()]);
+  }, [sales, perfumes, employees]);
+
   return (
     <div className="min-h-screen bg-pink-50 p-4">
       <div className="max-w-2xl mx-auto space-y-4">
@@ -428,11 +469,74 @@ function RankingPage() {
               ))}
             </div>
 
+            <Card className="p-4 space-y-3 border-fuchsia-200 bg-fuchsia-50/60">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold text-sm">🎁 Domingo bono · {monthLabel()}</h2>
+                <Link to="/perfumes">
+                  <Button size="sm" variant="outline" className="h-7 text-xs">
+                    🧴 Registrar perfume
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Del 1 al último día del mes. Compiten quienes vendan al menos {PERFUME_GOAL} perfumes;
+                entre ellas gana la que tenga más ventas agregadas. Solo hay una ganadora al mes.
+              </p>
+              <div className="rounded-lg bg-white p-3 text-sm">
+                {goal.winner ? (
+                  <p>
+                    Va ganando <span className="font-semibold">{goal.winner.name}</span> con{" "}
+                    {goal.winner.ventas} venta(s) agregada(s) y {goal.winner.perfumes} perfume(s).
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">
+                    Aún nadie alcanza el mínimo de {PERFUME_GOAL} perfumes este mes.
+                  </p>
+                )}
+              </div>
+              <ul className="space-y-2">
+                {goal.sorted.map((r, i) => (
+                  <li key={r.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm gap-2">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="w-6 text-center">
+                          {r.qualified && i === 0 ? "🏆" : <span className="text-muted-foreground">{i + 1}</span>}
+                        </span>
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: r.color }}
+                        />
+                        <span className="font-medium truncate">{r.name}</span>
+                      </span>
+                      <span className="text-xs tabular-nums shrink-0">
+                        {r.ventas} ventas · {r.perfumes}/{PERFUME_GOAL} perfumes
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(100, (r.perfumes / PERFUME_GOAL) * 100)}%`,
+                          backgroundColor: r.qualified ? "#a21caf" : "#d8b4fe",
+                        }}
+                      />
+                    </div>
+                    {!r.qualified && (
+                      <p className="text-[10px] text-muted-foreground pl-8">
+                        Le faltan {PERFUME_GOAL - r.perfumes} perfume(s) para calificar
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
             <Card className="p-4 space-y-4">
               <p className="text-xs text-muted-foreground">
                 {BOARDS.find((b) => b.id === board)?.label} ·{" "}
                 {PERIOD_LABELS.find((p) => p.id === period)?.label.toLowerCase()}
                 {board === "puntualidad" && ` · según el horario asignado, con ${TOLERANCE_MINUTES} min de tolerancia`}
+                {board === "perfumes" && " · perfumes registrados manualmente"}
                 {board === "general" &&
                   " · 3 pts venta validada, 2 pts limpieza y cliente, 1 pt entrada puntual"}
               </p>
