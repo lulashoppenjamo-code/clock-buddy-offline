@@ -424,6 +424,15 @@ function ClientesPage({
     useState<Customer | null>(null);
   const [scannerLoading, setScannerLoading] = useState(false);
 
+  // ============================================================
+  // LECTOR INALÁMBRICO HID
+  // La pistola funciona como teclado y queda lista automáticamente.
+  // ============================================================
+  const scannerBufferRef = useRef("");
+  const scannerTimerRef = useRef<number | null>(null);
+  const lastScannerKeyTimeRef = useRef(0);
+  const scannerBusyRef = useRef(false);
+
   const loadCustomers = useCallback(async () => {
     setLoading(true);
 
@@ -737,6 +746,9 @@ function ClientesPage({
       return;
     }
 
+    if (scannerBusyRef.current) return;
+
+    scannerBusyRef.current = true;
     setScannerLoading(true);
 
     try {
@@ -753,19 +765,121 @@ function ClientesPage({
       }
 
       if (!data) {
-        toast.error(
-          `No encontré un cliente con el código ${code}`,
-        );
+        toast.error(`No encontré un cliente con el código ${code}`);
         setScannerCustomer(null);
         return;
       }
 
       setScannerCustomer(data as Customer);
       setScannerOpen(false);
+
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.vibrate
+      ) {
+        navigator.vibrate(80);
+      }
     } finally {
+      scannerBusyRef.current = false;
       setScannerLoading(false);
     }
   }
+
+  // ============================================================
+  // ESCÁNER INALÁMBRICO AUTOMÁTICO
+  // La pistola envía el código como teclado.
+  // No requiere abrir cámara ni seleccionar un campo.
+  // ============================================================
+  useEffect(() => {
+    const clearScannerBuffer = () => {
+      scannerBufferRef.current = "";
+      lastScannerKeyTimeRef.current = 0;
+
+      if (scannerTimerRef.current !== null) {
+        window.clearTimeout(scannerTimerRef.current);
+        scannerTimerRef.current = null;
+      }
+    };
+
+    const handleHardwareScanner = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+
+      const isEditable =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        target?.isContentEditable;
+
+      // No interferir con búsquedas, formularios o diálogos.
+      if (isEditable) return;
+
+      const now = performance.now();
+      const previous = lastScannerKeyTimeRef.current;
+      const gap = previous ? now - previous : 0;
+
+      // La mayoría de pistolas termina enviando Enter.
+      if (event.key === "Enter") {
+        const code = scannerBufferRef.current.trim();
+
+        clearScannerBuffer();
+
+        if (code.length >= 3) {
+          event.preventDefault();
+          void findCustomerByCode(code);
+        }
+
+        return;
+      }
+
+      // Ignorar teclas que no sean caracteres.
+      if (event.key.length !== 1) return;
+
+      // Si pasó demasiado tiempo, empezamos un nuevo escaneo.
+      if (gap > 120) {
+        scannerBufferRef.current = "";
+      }
+
+      scannerBufferRef.current += event.key;
+      lastScannerKeyTimeRef.current = now;
+
+      if (scannerTimerRef.current !== null) {
+        window.clearTimeout(scannerTimerRef.current);
+      }
+
+      // Algunas pistolas no mandan Enter.
+      scannerTimerRef.current = window.setTimeout(() => {
+        const code = scannerBufferRef.current.trim();
+
+        clearScannerBuffer();
+
+        if (code.length >= 3) {
+          void findCustomerByCode(code);
+        }
+      }, 180);
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleHardwareScanner,
+      true,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleHardwareScanner,
+        true,
+      );
+
+      clearScannerBuffer();
+      scannerBusyRef.current = false;
+    };
+  }, [ownerId]);
 
   function openScanner() {
     setScannerCode("");
@@ -1026,7 +1140,21 @@ function ClientesPage({
             </div>
 
             {/* ESCÁNER RÁPIDO */}
-            <Card className="p-4 border-pink-200 bg-white">
+            <Card className="p-4 border-emerald-200 bg-white">
+              <div className="mb-3 flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+                <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+
+                <div>
+                  <p className="text-xs font-bold text-emerald-800">
+                    LECTOR INALÁMBRICO LISTO
+                  </p>
+
+                  <p className="text-[11px] text-emerald-700">
+                    Escanea con tu pistola directamente. No necesitas abrir el escáner.
+                  </p>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1">
                   <p className="font-semibold text-pink-900">
@@ -2149,6 +2277,16 @@ function CustomerScanResult({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg bg-slate-50 border px-3 py-2 text-center">
+        <p className="text-[11px] font-semibold text-slate-700">
+          Escáner listo
+        </p>
+
+        <p className="text-[10px] text-muted-foreground">
+          Puedes escanear al siguiente cliente sin cerrar esta ventana.
+        </p>
+      </div>
+
       <div
         className={`rounded-2xl p-5 text-center ${
           active
