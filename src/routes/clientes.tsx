@@ -61,6 +61,7 @@ type Customer = {
   whatsapp: string | null;
   email: string | null;
   school: string | null;
+  school_id: string | null;
   discount_type: string | null;
   start_date: string | null;
   end_date: string | null;
@@ -581,6 +582,7 @@ function ClientesPage({
       whatsapp: "",
       email: "",
       school: "",
+      school_id: null,
       discount_type: "",
       start_date: todayString(),
       end_date: "",
@@ -607,13 +609,26 @@ function ClientesPage({
       return;
     }
 
+    const schoolName = (editing.school || "").trim() || null;
+    let schoolId: string | null = editing.school_id || null;
+
+    if (schoolName) {
+      const matched = schoolsData.find(
+        (s) => s.name.trim() === schoolName,
+      );
+      schoolId = matched ? matched.id : null;
+    } else {
+      schoolId = null;
+    }
+
     const basePayload = {
       owner_id: ownerId,
       name: editing.name.trim(),
       phone: editing.phone || null,
       whatsapp: editing.whatsapp || null,
       email: editing.email || null,
-      school: editing.school || null,
+      school: schoolName,
+      school_id: schoolId,
       discount_type: editing.discount_type || null,
       start_date: editing.start_date || null,
       end_date: editing.end_date || null,
@@ -625,7 +640,7 @@ function ClientesPage({
     if (editing.id) {
       const { error } = await supabase
         .from("customers")
-        .update(basePayload)
+        .update(basePayload as any)
         .eq("id", editing.id);
 
       if (error) {
@@ -639,7 +654,7 @@ function ClientesPage({
         ...basePayload,
         registered_by_id: employee.id,
         registered_by_name: employee.name,
-      });
+      } as any);
 
       if (error) {
         toast.error(error.message);
@@ -959,13 +974,26 @@ function ClientesPage({
         oldSchool &&
         oldSchool.name.trim() !== editingSchool.name.trim()
       ) {
+        // Clientes ya ligados por UUID
         await supabase
           .from("customers")
           .update({
             school: editingSchool.name.trim(),
-          })
+            school_id: editingSchool.id,
+          } as any)
           .eq("owner_id", ownerId)
-          .eq("school", oldSchool.name);
+          .eq("school_id", editingSchool.id);
+
+        // Clientes legacy solo con texto
+        await supabase
+          .from("customers")
+          .update({
+            school: editingSchool.name.trim(),
+            school_id: editingSchool.id,
+          } as any)
+          .eq("owner_id", ownerId)
+          .eq("school", oldSchool.name)
+          .is("school_id", null);
       }
 
       toast.success("Escuela actualizada");
@@ -1016,15 +1044,48 @@ function ClientesPage({
     await loadSchools();
   }
 
-  function assignCustomerToSchool(
+  async function assignCustomerToSchool(
     customer: Customer,
     schoolName: string,
   ) {
-    setEditing({
-      ...customer,
-      school: schoolName === "none" ? "" : schoolName,
-    });
-    setDialogOpen(true);
+    const isNone = schoolName === "none" || !schoolName.trim();
+    const matched = isNone
+      ? null
+      : schoolsData.find((s) => s.name.trim() === schoolName.trim());
+
+    const nextSchool = isNone ? null : schoolName.trim();
+    const nextSchoolId = matched ? matched.id : null;
+
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        school: nextSchool,
+        school_id: nextSchoolId,
+      } as any)
+      .eq("id", customer.id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setRows((current) =>
+      current.map((row) =>
+        row.id === customer.id
+          ? {
+              ...row,
+              school: nextSchool,
+              school_id: nextSchoolId,
+            }
+          : row,
+      ),
+    );
+
+    toast.success(
+      isNone
+        ? "Cliente sin escuela"
+        : `Cliente asignado a ${nextSchool}`,
+    );
   }
 
   return (
@@ -1539,13 +1600,18 @@ function ClientesPage({
                       setEditing({
                         ...editing,
                         school: "",
+                        school_id: null,
                       });
                     } else if (value === "__legacy__") {
                       return;
                     } else {
+                      const matched = schoolsData.find(
+                        (s) => s.name.trim() === value.trim(),
+                      );
                       setEditing({
                         ...editing,
                         school: value,
+                        school_id: matched ? matched.id : null,
                       });
                     }
                   }}
@@ -1987,7 +2053,7 @@ function SchoolsSection({
   onAssign: (
     customer: Customer,
     schoolName: string,
-  ) => void;
+  ) => void | Promise<void>;
 }) {
   const [search, setSearch] = useState("");
 
@@ -2052,8 +2118,9 @@ function SchoolsSection({
           {filteredSchools.map((school) => {
             const schoolCustomers = customers.filter(
               (customer) =>
+                customer.school_id === school.id ||
                 (customer.school ?? "").trim() ===
-                school.name.trim(),
+                  school.name.trim(),
             );
 
             return (
