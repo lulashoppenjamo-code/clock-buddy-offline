@@ -517,12 +517,26 @@ function ClientesPage({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
+    const schoolIdForFilter =
+      schoolFilter !== "all"
+        ? schoolsData.find(
+            (s) => s.name.trim() === schoolFilter.trim(),
+          )?.id ?? null
+        : null;
+
     return rows.filter((r) => {
-      if (
-        schoolFilter !== "all" &&
-        (r.school ?? "") !== schoolFilter
-      ) {
-        return false;
+      if (schoolFilter !== "all") {
+        // Prefer school_id; fallback to legacy school text
+        const matchesId =
+          !!schoolIdForFilter && r.school_id === schoolIdForFilter;
+        const matchesLegacyName =
+          (r.school ?? "").trim() === schoolFilter.trim();
+
+        if (r.school_id) {
+          if (!matchesId) return false;
+        } else if (!matchesLegacyName) {
+          return false;
+        }
       }
 
       if (
@@ -556,6 +570,7 @@ function ClientesPage({
     schoolFilter,
     statusFilter,
     discountFilter,
+    schoolsData,
   ]);
 
   const counts = useMemo(() => {
@@ -717,16 +732,19 @@ function ClientesPage({
     const discount = customer.discount_type
       ? ` (${customer.discount_type})`
       : "";
+    const schoolPart = customer.school
+      ? ` de ${customer.school}`
+      : "";
 
     if (type === "vence") {
-      return `Hola ${customer.name} 👋, te recordamos que tu convenio${discount} vence el ${customer.end_date ?? "próximamente"}. Queremos ayudarte a conservar tus beneficios. 💖`;
+      return `Hola ${customer.name} 👋, te recordamos que tu convenio${schoolPart}${discount} vence el ${customer.end_date ?? "próximamente"}. Queremos ayudarte a conservar tus beneficios. 💖`;
     }
 
     if (type === "renovacion") {
-      return `Hola ${customer.name} 👋, tu convenio${discount} ya venció o está por vencer. Si deseas continuar disfrutando tus beneficios, puedes renovarlo con nosotros. ✨`;
+      return `Hola ${customer.name} 👋, tu convenio${schoolPart}${discount} ya venció o está por vencer. Si deseas continuar disfrutando tus beneficios, puedes renovarlo con nosotros. ✨`;
     }
 
-    return `Hola ${customer.name} 👋, tenemos una promoción especial para ti por ser cliente con convenio${discount}. ¡Ven a visitarnos y aprovecha tu beneficio! 💖✨`;
+    return `Hola ${customer.name} 👋, tenemos una promoción especial para ti por ser cliente con convenio${schoolPart}${discount}. ¡Ven a visitarnos y aprovecha tu beneficio! 💖✨`;
   }
 
   function openWhatsApp(
@@ -1019,8 +1037,9 @@ function ClientesPage({
   async function removeSchool(school: School) {
     const clientCount = rows.filter(
       (customer) =>
+        customer.school_id === school.id ||
         (customer.school ?? "").trim() ===
-        school.name.trim(),
+          school.name.trim(),
     ).length;
 
     const message =
@@ -1501,6 +1520,7 @@ function ClientesPage({
             onEdit={openSchoolEdit}
             onDelete={removeSchool}
             onAssign={assignCustomerToSchool}
+            onWhatsApp={openWhatsApp}
           />
         )}
       </div>
@@ -2037,6 +2057,44 @@ function ClientesPage({
    SECCIÓN ESCUELAS
    ============================================================ */
 
+function customersOfSchool(
+  customers: Customer[],
+  school: School,
+): Customer[] {
+  return customers.filter(
+    (customer) =>
+      customer.school_id === school.id ||
+      (!customer.school_id &&
+        (customer.school ?? "").trim() === school.name.trim()),
+  );
+}
+
+function schoolStats(schoolCustomers: Customer[]) {
+  let activos = 0;
+  let por_vencer = 0;
+  let vencidos_inactivos = 0;
+
+  for (const customer of schoolCustomers) {
+    const status = statusOf(customer);
+    if (status === "activo") activos++;
+    else if (status === "por_vencer") por_vencer++;
+    else vencidos_inactivos++;
+  }
+
+  return {
+    total: schoolCustomers.length,
+    activos,
+    por_vencer,
+    vencidos_inactivos,
+  };
+}
+
+function customerHasWhatsApp(customer: Customer) {
+  return Boolean(
+    (customer.whatsapp || customer.phone || "").replace(/\D/g, ""),
+  );
+}
+
 function SchoolsSection({
   schools,
   customers,
@@ -2044,6 +2102,7 @@ function SchoolsSection({
   onEdit,
   onDelete,
   onAssign,
+  onWhatsApp,
 }: {
   schools: School[];
   customers: Customer[];
@@ -2054,8 +2113,24 @@ function SchoolsSection({
     customer: Customer,
     schoolName: string,
   ) => void | Promise<void>;
+  onWhatsApp: (
+    customer: Customer,
+    type: "promo" | "vence" | "renovacion",
+  ) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [expandedSchoolId, setExpandedSchoolId] = useState<
+    string | null
+  >(null);
+
+  type BulkType = "promo" | "vence" | "renovacion";
+
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkSchool, setBulkSchool] = useState<School | null>(null);
+  const [bulkType, setBulkType] = useState<BulkType>("promo");
+  const [bulkRecipients, setBulkRecipients] = useState<Customer[]>(
+    [],
+  );
 
   const filteredSchools = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -2071,6 +2146,45 @@ function SchoolsSection({
         (school.phone ?? "").includes(q),
     );
   }, [schools, search]);
+
+  function requestBulkWhatsApp(
+    school: School,
+    type: BulkType,
+  ) {
+    const schoolCustomers = customersOfSchool(customers, school);
+    const withPhone = schoolCustomers.filter(customerHasWhatsApp);
+
+    if (withPhone.length === 0) {
+      toast.error(
+        "Ningún cliente de esta escuela tiene teléfono o WhatsApp",
+      );
+      return;
+    }
+
+    const labels: Record<BulkType, string> = {
+      promo: "promoción",
+      vence: "vencimiento",
+      renovacion: "renovación",
+    };
+
+    const ok = confirm(
+      `Se prepararán mensajes de ${labels[type]} para ${withPhone.length} cliente(s) de "${school.name}" que tienen teléfono/WhatsApp.\n\n¿Continuar?`,
+    );
+
+    if (!ok) return;
+
+    setBulkSchool(school);
+    setBulkType(type);
+    setBulkRecipients(withPhone);
+    setBulkOpen(true);
+  }
+
+  const bulkTitle =
+    bulkType === "vence"
+      ? "WhatsApp vencimiento"
+      : bulkType === "renovacion"
+        ? "WhatsApp renovación"
+        : "WhatsApp promoción";
 
   return (
     <div className="space-y-4">
@@ -2116,18 +2230,15 @@ function SchoolsSection({
       ) : (
         <div className="space-y-3">
           {filteredSchools.map((school) => {
-            const schoolCustomers = customers.filter(
-              (customer) =>
-                customer.school_id === school.id ||
-                (customer.school ?? "").trim() ===
-                  school.name.trim(),
+            const schoolCustomers = customersOfSchool(
+              customers,
+              school,
             );
+            const stats = schoolStats(schoolCustomers);
+            const isExpanded = expandedSchoolId === school.id;
 
             return (
-              <Card
-                key={school.id}
-                className="p-4"
-              >
+              <Card key={school.id} className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="h-10 w-10 rounded-xl bg-pink-100 grid place-items-center shrink-0">
                     <Building2 className="h-5 w-5 text-pink-600" />
@@ -2146,48 +2257,87 @@ function SchoolsSection({
                             : "bg-slate-100 text-slate-700"
                         }`}
                       >
-                        {school.active
-                          ? "ACTIVA"
-                          : "INACTIVA"}
+                        {school.active ? "ACTIVA" : "INACTIVA"}
                       </span>
                     </div>
 
                     <div className="text-xs text-muted-foreground mt-1 space-y-1">
                       {school.contact_name && (
-                        <div>
-                          👤 {school.contact_name}
-                        </div>
+                        <div>👤 {school.contact_name}</div>
                       )}
 
                       {school.phone && (
-                        <div>
-                          📞 {school.phone}
-                        </div>
+                        <div>📞 {school.phone}</div>
                       )}
 
                       {school.discount_type && (
-                        <div>
-                          🎁 {school.discount_type}
-                        </div>
+                        <div>🎁 {school.discount_type}</div>
                       )}
 
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {schoolCustomers.length} cliente(s)
-                      </div>
-
-                      {(school.start_date ||
-                        school.end_date) && (
+                      {(school.start_date || school.end_date) && (
                         <div>
-                          📅{" "}
-                          {school.start_date ?? "Sin inicio"}{" "}
-                          →{" "}
+                          📅 {school.start_date ?? "Sin inicio"} →{" "}
                           {school.end_date ?? "Sin vencimiento"}
                         </div>
                       )}
                     </div>
 
+                    {/* Estadísticas */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                      <div className="rounded-lg border bg-white px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-muted-foreground">
+                          Total
+                        </p>
+                        <p className="text-sm font-bold text-pink-900">
+                          {stats.total}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-emerald-700">
+                          Activos
+                        </p>
+                        <p className="text-sm font-bold text-emerald-700">
+                          {stats.activos}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-amber-700">
+                          Por vencer
+                        </p>
+                        <p className="text-sm font-bold text-amber-700">
+                          {stats.por_vencer}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-center">
+                        <p className="text-[10px] text-red-700">
+                          Vencidos / inactivos
+                        </p>
+                        <p className="text-sm font-bold text-red-700">
+                          {stats.vencidos_inactivos}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="flex flex-wrap gap-1.5 mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setExpandedSchoolId(
+                            isExpanded ? null : school.id,
+                          )
+                        }
+                        className="h-8 text-xs"
+                      >
+                        <Users className="h-3 w-3 mr-1" />
+                        {isExpanded
+                          ? "Ocultar clientes"
+                          : "Ver clientes"}
+                      </Button>
+
                       <Button
                         size="sm"
                         variant="outline"
@@ -2210,42 +2360,90 @@ function SchoolsSection({
                     </div>
 
                     {schoolCustomers.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            requestBulkWhatsApp(school, "promo")
+                          }
+                          className="h-8 text-xs text-emerald-700 border-emerald-200"
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          WA promoción
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            requestBulkWhatsApp(school, "vence")
+                          }
+                          className="h-8 text-xs text-amber-700 border-amber-200"
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          WA vencimiento
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            requestBulkWhatsApp(
+                              school,
+                              "renovacion",
+                            )
+                          }
+                          className="h-8 text-xs text-pink-700 border-pink-200"
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          WA renovación
+                        </Button>
+                      </div>
+                    )}
+
+                    {isExpanded && (
                       <div className="mt-3 border-t pt-3 space-y-1">
                         <p className="text-xs font-semibold text-pink-900">
-                          Clientes asignados
+                          Clientes de {school.name} (
+                          {schoolCustomers.length})
                         </p>
 
-                        {schoolCustomers
-                          .slice(0, 10)
-                          .map((customer) => (
-                            <div
-                              key={customer.id}
-                              className="flex items-center justify-between gap-2 text-xs"
-                            >
-                              <span className="truncate">
-                                {customer.name}
-                              </span>
-
-                              <span
-                                className={
-                                  benefitIsActive(customer)
-                                    ? "text-emerald-700 font-semibold"
-                                    : "text-red-700 font-semibold"
-                                }
-                              >
-                                {benefitIsActive(customer)
-                                  ? "Activo"
-                                  : "Inactivo"}
-                              </span>
-                            </div>
-                          ))}
-
-                        {schoolCustomers.length > 10 && (
-                          <p className="text-[11px] text-muted-foreground">
-                            +{" "}
-                            {schoolCustomers.length - 10}{" "}
-                            clientes más
+                        {schoolCustomers.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            Sin clientes asignados.
                           </p>
+                        ) : (
+                          schoolCustomers.map((customer) => {
+                            const status = statusOf(customer);
+                            const meta = STATUS_META[status];
+
+                            return (
+                              <div
+                                key={customer.id}
+                                className="flex items-center justify-between gap-2 text-xs border rounded-lg px-2 py-1.5"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">
+                                    {customer.name}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {customer.discount_type ||
+                                      "Sin descuento"}
+                                    {customer.end_date
+                                      ? ` · vence ${customer.end_date}`
+                                      : ""}
+                                  </p>
+                                </div>
+
+                                <span
+                                  className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded ${meta.badge}`}
+                                >
+                                  {meta.label}
+                                </span>
+                              </div>
+                            );
+                          })
                         )}
                       </div>
                     )}
@@ -2257,7 +2455,7 @@ function SchoolsSection({
         </div>
       )}
 
-      {/* Esta sección permite reasignar clientes sin crear nuevos */}
+      {/* Asignar clientes existentes */}
       {customers.length > 0 && (
         <Card className="p-4">
           <h3 className="font-semibold text-pink-900 mb-2">
@@ -2282,8 +2480,7 @@ function SchoolsSection({
                   </p>
 
                   <p className="text-[11px] text-muted-foreground truncate">
-                    {customer.school ||
-                      "Sin escuela asignada"}
+                    {customer.school || "Sin escuela asignada"}
                   </p>
                 </div>
 
@@ -2317,6 +2514,61 @@ function SchoolsSection({
           </div>
         </Card>
       )}
+
+      {/* Diálogo WhatsApp masivo por escuela */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {bulkTitle}
+              {bulkSchool ? ` · ${bulkSchool.name}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+
+          <p className="text-xs text-muted-foreground">
+            Abre WhatsApp de uno en uno. El navegador puede bloquear
+            muchas ventanas a la vez.
+          </p>
+
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {bulkRecipients.map((customer) => (
+              <div
+                key={customer.id}
+                className="flex items-center justify-between gap-2 border rounded-lg p-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {customer.name}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {customer.whatsapp ||
+                      customer.phone ||
+                      "Sin número"}
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  className="h-8 text-xs shrink-0 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => onWhatsApp(customer, bulkType)}
+                >
+                  <MessageCircle className="h-3 w-3 mr-1" />
+                  Abrir WhatsApp
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkOpen(false)}
+            >
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
