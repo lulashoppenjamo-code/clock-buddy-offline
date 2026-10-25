@@ -2,8 +2,8 @@
  * Calienta la caché del app shell mientras hay internet.
  * Prioriza checado, empleadas y módulos de uso diario.
  */
-const SHELL_CACHE = "checador-shell-v5";
-const ASSET_CACHE = "checador-assets-v5";
+const SHELL_CACHE = "checador-shell-v6";
+const ASSET_CACHE = "checador-assets-v6";
 
 async function putInCache(cache: Cache, url: string): Promise<void> {
   try {
@@ -39,8 +39,14 @@ export async function warmAppShell(): Promise<void> {
       "/ranking",
       "/meta-mensual",
       "/perfumes",
+      "/admin-ventas",
+      "/admin-faltantes",
+      "/admin-insumos",
+      "/admin-limpieza",
+      "/admin-pagos",
+      "/admin-vacaciones",
+      "/admin-descansos",
       "/offline.html",
-      "/manifest.json",
       window.location.pathname || "/",
     ];
 
