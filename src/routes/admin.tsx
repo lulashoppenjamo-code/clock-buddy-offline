@@ -13,7 +13,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Clock, AlertTriangle, TrendingUp } from "lucide-react";
+import {
+  fetchSchedules,
+  scheduleIndex,
+  evaluateClockIn,
+  evaluateBreakReturn,
+  formatMinutesClock,
+  TOLERANCE_MINUTES,
+  LUNCH_MAX_MINUTES,
+  type EmployeeSchedule,
+} from "@/lib/schedule";
+import { getLateStats } from "@/lib/late-tracking";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -81,9 +92,12 @@ function AdminPage({ ownerId }: { ownerId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerId]);
 
+  const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "behavior">("list");
+
   async function load(uid: string) {
     setRefreshing(true);
-    const [{ data: emps }, { data: ents }] = await Promise.all([
+    const [{ data: emps }, { data: ents }, scheds] = await Promise.all([
       supabase.from("employees").select("id,name,color").eq("owner_id", uid).order("name"),
       supabase
         .from("time_entries")
@@ -91,9 +105,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
         .eq("owner_id", uid)
         .order("occurred_at", { ascending: false })
         .limit(1000),
+      fetchSchedules(uid).catch(() => [] as EmployeeSchedule[]),
     ]);
     setEmployees(emps ?? []);
     setEntries((ents ?? []) as Entry[]);
+    setSchedules(scheds);
     setRefreshing(false);
   }
 
@@ -154,6 +170,82 @@ function AdminPage({ ownerId }: { ownerId: string }) {
     }
     return perEmp;
   }, [filtered, employees]);
+
+  /** Comportamiento de entradas/salidas por colaboradora en el rango filtrado */
+  const behavior = useMemo(() => {
+    const idx = scheduleIndex(schedules);
+    type Row = {
+      id: string;
+      name: string;
+      color: string;
+      clockIns: number;
+      lateIns: number;
+      avgEntryMins: number | null;
+      avgLateMins: number;
+      lunchReturns: number;
+      lateLunches: number;
+      avgLunchMins: number | null;
+      recurrenceEntry: boolean;
+      recurrenceLunch: boolean;
+    };
+    const rows: Row[] = [];
+    for (const emp of employees) {
+      if (selectedEmp !== "all" && emp.id !== selectedEmp) continue;
+      const list = filtered
+        .filter((e) => e.employee_id === emp.id)
+        .slice()
+        .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
+      let entrySum = 0;
+      let entryCount = 0;
+      let lateIns = 0;
+      let lateSum = 0;
+      let lunchCount = 0;
+      let lunchSum = 0;
+      let lateLunches = 0;
+      let lastBreakStart: Date | null = null;
+      for (const e of list) {
+        const when = parseISO(e.occurred_at);
+        if (e.type === "clock_in") {
+          const mins = when.getHours() * 60 + when.getMinutes();
+          entrySum += mins;
+          entryCount += 1;
+          const sch = idx.get(`${emp.id}|${when.getDay()}`);
+          const ev = evaluateClockIn(when, sch);
+          if (ev && !ev.onTime) {
+            lateIns += 1;
+            lateSum += ev.lateMinutes;
+          }
+        } else if (e.type === "break_start") {
+          lastBreakStart = when;
+        } else if (e.type === "break_end") {
+          if (lastBreakStart) {
+            const ev = evaluateBreakReturn(lastBreakStart, when);
+            lunchCount += 1;
+            lunchSum += ev.durationMinutes;
+            if (!ev.onTime) lateLunches += 1;
+            lastBreakStart = null;
+          }
+        }
+      }
+      const local = getLateStats(emp.id);
+      rows.push({
+        id: emp.id,
+        name: emp.name,
+        color: emp.color,
+        clockIns: entryCount,
+        lateIns,
+        avgEntryMins: entryCount ? entrySum / entryCount : null,
+        avgLateMins: lateIns ? lateSum / lateIns : 0,
+        lunchReturns: lunchCount,
+        lateLunches,
+        avgLunchMins: lunchCount ? lunchSum / lunchCount : null,
+        recurrenceEntry: lateIns >= 2 || local.entryLates >= 2,
+        recurrenceLunch: lateLunches >= 2 || local.lunchLates >= 2,
+      });
+    }
+    rows.sort((a, b) => b.lateIns - a.lateIns || a.name.localeCompare(b.name, "es"));
+    return rows;
+  }, [filtered, employees, schedules, selectedEmp]);
 
   function exportCSV() {
     const empName = (id: string) => employees.find((e) => e.id === id)?.name ?? id;
@@ -279,6 +371,22 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex rounded-md border p-0.5 text-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`flex-1 rounded px-2 py-1.5 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Historial
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("behavior")}
+              className={`flex-1 rounded px-2 py-1.5 ${viewMode === "behavior" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              Comportamiento
+            </button>
+          </div>
           <Button variant="outline" className="w-full" onClick={exportCSV} disabled={filtered.length === 0}>
             <Download className="h-4 w-4" /> Exportar CSV ({filtered.length})
           </Button>
@@ -372,6 +480,70 @@ function AdminPage({ ownerId }: { ownerId: string }) {
           </DialogContent>
         </Dialog>
 
+        {viewMode === "behavior" && (
+          <Card className="p-3 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <TrendingUp className="h-4 w-4" />
+              Comportamiento de entradas y salidas
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Promedio de hora de entrada, retardos (tol. {TOLERANCE_MINUTES} min) y comida
+              (máx. {LUNCH_MAX_MINUTES} min). Reincidencia = 2 o más retardos en el periodo.
+            </p>
+            <div className="space-y-2">
+              {behavior.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">Sin datos en este rango</p>
+              )}
+              {behavior.map((b) => (
+                <div
+                  key={b.id}
+                  className={`rounded-lg border p-3 text-xs space-y-1.5 ${
+                    b.recurrenceEntry || b.recurrenceLunch ? "border-rose-300 bg-rose-50" : "bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ background: b.color || "#ec4899" }}
+                    />
+                    <span className="font-semibold text-sm">{b.name}</span>
+                    {(b.recurrenceEntry || b.recurrenceLunch) && (
+                      <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-medium text-white">
+                        <AlertTriangle className="h-3 w-3" /> Reincidencia
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-muted-foreground">
+                    <div className="flex items-center gap-1 col-span-2">
+                      <Clock className="h-3 w-3" />
+                      Entrada promedio:{" "}
+                      <span className="font-medium text-foreground">
+                        {b.avgEntryMins != null ? formatMinutesClock(b.avgEntryMins) : "—"}
+                      </span>
+                    </div>
+                    <div>
+                      Entradas: <span className="font-medium text-foreground">{b.clockIns}</span>
+                    </div>
+                    <div className={b.lateIns > 0 ? "text-amber-700 font-medium" : ""}>
+                      Retardos: {b.lateIns}
+                      {b.lateIns > 0 ? ` · +${Math.round(b.avgLateMins)} min prom.` : ""}
+                    </div>
+                    <div>
+                      Comidas: {b.lunchReturns}
+                      {b.avgLunchMins != null ? ` · ${Math.round(b.avgLunchMins)} min prom.` : ""}
+                    </div>
+                    <div className={b.lateLunches > 0 ? "text-amber-700 font-medium" : ""}>
+                      Comida tarde: {b.lateLunches}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {viewMode === "list" && (
+        <>
         <div className="grid grid-cols-2 gap-2">
           {employees.map((e) => {
             const s = stats[e.id] ?? { worked: 0, sessions: 0 };
@@ -490,6 +662,8 @@ function AdminPage({ ownerId }: { ownerId: string }) {
             </p>
           )}
         </Card>
+        </>
+        )}
       </div>
     </div>
   );
