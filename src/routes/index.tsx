@@ -5,6 +5,7 @@ import {
   cacheEmployees,
   getCachedEmployees,
   getLastEntryForEmployee,
+  getAllEntries,
   queueEntry,
   type EntryType,
 } from "@/lib/offline-queue";
@@ -12,6 +13,8 @@ import { syncPending } from "@/lib/sync";
 import { useOnline } from "@/lib/use-online";
 import { uuid } from "@/lib/uuid";
 import { captureFromFileInput, deviceLabel, geoReasonMessage, getPosition } from "@/lib/capture";
+import { fetchSchedules, scheduleIndex } from "@/lib/schedule";
+import { feedbackClockIn, feedbackBreakEnd } from "@/lib/late-tracking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -197,7 +200,54 @@ function Index() {
         device_label: deviceLabel(),
       };
       await queueEntry(entry);
-      toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+
+      // Mensajes de retardo (entrada o regreso de comida)
+      try {
+        const when = new Date(entry.occurred_at);
+        if (type === "clock_in") {
+          let schedule = undefined;
+          if (navigator.onLine && ownerId) {
+            try {
+              const list = await fetchSchedules(ownerId);
+              schedule = scheduleIndex(list).get(`${selected.id}|${when.getDay()}`);
+            } catch { /* fallback horario 10:00 */ }
+          }
+          const fb = feedbackClockIn(selected.id, selected.name, when, schedule);
+          if (fb.late) {
+            if (fb.severity === "recurrent") toast.error(fb.message, { duration: 8000 });
+            else toast.warning(fb.message, { duration: 6000 });
+          } else {
+            toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+          }
+        } else if (type === "break_end") {
+          // Buscar último break_start local o en cola
+          const all = await getAllEntries();
+          const start = all
+            .filter((e) => e.employee_id === selected.id && e.type === "break_start")
+            .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
+          if (start) {
+            const fb = feedbackBreakEnd(
+              selected.id,
+              selected.name,
+              new Date(start.occurred_at),
+              when,
+            );
+            if (fb.late) {
+              if (fb.severity === "recurrent") toast.error(fb.message, { duration: 8000 });
+              else toast.warning(fb.message, { duration: 6000 });
+            } else {
+              toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+            }
+          } else {
+            toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+          }
+        } else {
+          toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+        }
+      } catch {
+        toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+      }
+
       setSelected(null);
       setLastEntryType(type);
       await refreshPending();
