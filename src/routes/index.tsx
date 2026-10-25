@@ -6,6 +6,8 @@ import {
   getCachedEmployees,
   getLastEntryForEmployee,
   getAllEntries,
+  getCache,
+  setCache,
   queueEntry,
   type EntryType,
 } from "@/lib/offline-queue";
@@ -206,10 +208,18 @@ function Index() {
         const when = new Date(entry.occurred_at);
         if (type === "clock_in") {
           let schedule = undefined;
-          if (navigator.onLine && ownerId) {
+          if (ownerId) {
             try {
-              const list = await fetchSchedules(ownerId);
-              schedule = scheduleIndex(list).get(`${selected.id}|${when.getDay()}`);
+              let list = await getCache<any[]>(`admin_schedules:${ownerId}`);
+              if (navigator.onLine) {
+                try {
+                  list = await fetchSchedules(ownerId);
+                  await setCache(`admin_schedules:${ownerId}`, list);
+                } catch { /* usa caché */ }
+              }
+              if (list?.length) {
+                schedule = scheduleIndex(list).get(`${selected.id}|${when.getDay()}`);
+              }
             } catch { /* fallback horario 10:00 */ }
           }
           const fb = feedbackClockIn(selected.id, selected.name, when, schedule);
