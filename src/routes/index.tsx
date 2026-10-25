@@ -650,3 +650,4 @@ function labelFor(t: EntryType) {
       return "Fin de descanso";
   }
 }
+ 
