@@ -1,3 +1,4 @@
+
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,20 +54,20 @@ function Index() {
     let mounted = true;
 
     (async () => {
-      // 0) Recuperar último ownerId conocido para arrancar offline
+      // Recuperar último ownerId conocido para arrancar offline
       try {
         const savedUid =
           typeof window !== "undefined" ? window.localStorage.getItem("checador.ownerId") : null;
         if (mounted && savedUid) setOwnerId(savedUid);
       } catch {}
 
-      // 1) Mostrar colaboradores cacheados inmediatamente (camino offline)
+      // Mostrar colaboradores cacheados inmediatamente
       try {
         const cached = await getCachedEmployees();
         if (mounted && cached.length) setEmployees(cached);
       } catch {}
 
-      // 2) Intentar leer sesión con timeout para no colgar offline
+      // Intentar leer sesión con timeout para no colgar offline
       let uid: string | null = null;
       try {
         const sessionPromise = supabase.auth.getSession();
@@ -85,7 +86,7 @@ function Index() {
       }
       setLoading(false);
 
-      // 3) Si hay internet y sesión, refrescar colaboradores desde servidor
+      // Refrescar colaboradores desde servidor cuando haya conexión
       if (uid && typeof navigator !== "undefined" && navigator.onLine) {
         try {
           const { data: emps } = await supabase
@@ -105,10 +106,7 @@ function Index() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       const newUid = s?.user.id ?? null;
       if (newUid) {
-        // Sólo actualizamos al iniciar/renovar sesión. NUNCA limpiamos el
-        // ownerId automáticamente: si el token expira sin internet, la app
-        // debe seguir permitiendo checar. El cierre de sesión sólo ocurre
-        // de forma explícita desde el panel de administrador.
+        // Nunca limpiar ownerId automáticamente: debe seguir funcionando offline.
         setOwnerId(newUid);
         try {
           window.localStorage.setItem("checador.ownerId", newUid);
@@ -121,15 +119,14 @@ function Index() {
     };
   }, []);
 
-  // tick clock
+  // Reloj en tiempo real
   useEffect(() => {
     setNow(new Date());
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-
-  // sync when online
+  // Sincronizar cuando vuelve internet
   const doSync = useCallback(async () => {
     if (!navigator.onLine || !ownerId) return;
     const { synced, failed } = await syncPending();
@@ -149,7 +146,7 @@ function Index() {
     setPending(p.length);
   }
 
-  // PIN handling
+  // Validación del PIN
   useEffect(() => {
     if (pin.length === 4) {
       const match = employees.find((e) => e.pin === pin);
@@ -172,7 +169,6 @@ function Index() {
     else if (pin.length < 4) setPin((p) => p + n);
   }
 
-
   async function resolveScheduleForNow(empId: string) {
     if (!ownerId) return undefined;
     try {
@@ -181,12 +177,12 @@ function Index() {
         try {
           list = await fetchSchedules(ownerId);
           await setCache(`admin_schedules:${ownerId}`, list);
-        } catch { /* cache */ }
+        } catch {}
       }
       if (list?.length) {
         return scheduleIndex(list).get(`${empId}|${new Date().getDay()}`);
       }
-    } catch { /* */ }
+    } catch {}
     return undefined;
   }
 
@@ -194,8 +190,7 @@ function Index() {
     if (!selected || !ownerId) return;
     setBusy(type);
     try {
-      // Prevenir duplicados: si la última checada de esta empleada es del
-      // mismo tipo y ocurrió hace menos de 60 segundos, la ignoramos.
+      // Evitar duplicados del mismo tipo en menos de 60 segundos
       const last = await getLastEntryForEmployee(selected.id);
       if (last && last.type === type) {
         const ageSec = (Date.now() - new Date(last.occurred_at).getTime()) / 1000;
@@ -205,6 +200,7 @@ function Index() {
           return;
         }
       }
+
       const geo = await getPosition();
       if (!geo.ok) {
         toast.warning(geoReasonMessage(geo.reason));
@@ -228,7 +224,7 @@ function Index() {
       };
       await queueEntry(entry);
 
-      // Mensajes de retardo (entrada o regreso de comida)
+      // Mensajes de retardo para entrada y regreso de comida
       try {
         const when = new Date(entry.occurred_at);
         if (type === "clock_in") {
@@ -240,12 +236,12 @@ function Index() {
                 try {
                   list = await fetchSchedules(ownerId);
                   await setCache(`admin_schedules:${ownerId}`, list);
-                } catch { /* usa caché */ }
+                } catch {}
               }
               if (list?.length) {
                 schedule = scheduleIndex(list).get(`${selected.id}|${when.getDay()}`);
               }
-            } catch { /* fallback horario 10:00 */ }
+            } catch {}
           }
           const fb = feedbackClockIn(selected.id, selected.name, when, schedule);
           if (fb.late) {
@@ -255,7 +251,6 @@ function Index() {
             toast.success(`${labelFor(type)} registrada para ${selected.name}`);
           }
         } else if (type === "break_end") {
-          // Buscar último break_start local o en cola
           const all = await getAllEntries();
           const start = all
             .filter((e) => e.employee_id === selected.id && e.type === "break_start")
@@ -313,7 +308,8 @@ function Index() {
         blob = null;
       }
     }
-    // Salida anticipada: si faltan más de 2 min al cierre de turno, pedir motivo
+
+    // Salida anticipada: pedir motivo si faltan más de 2 minutos al cierre
     if (action === "clock_out" && selected) {
       const sch = await resolveScheduleForNow(selected.id);
       const evalEarly = evaluateEarlyClockOut(new Date(), sch);
@@ -346,7 +342,7 @@ function Index() {
   if (loading) {
     return (
       <div className="min-h-screen grid place-items-center bg-pink-50">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-pink-400" />
       </div>
     );
   }
@@ -383,27 +379,23 @@ function Index() {
     );
   }
 
-  // Selected: show check actions
+  // Pantalla de acciones de la colaboradora
   if (selected) {
     const isWorking = lastEntryType === "clock_in" || lastEntryType === "break_end";
     const isOnBreak = lastEntryType === "break_start";
     return (
-      <div
-        className="min-h-screen flex flex-col p-5 text-white"
-        style={{ background: `linear-gradient(160deg, ${selected.color}, #4a051c)` }}
-      >
-        <TopBar online={online} pending={pending} dark />
+      <div className="min-h-screen flex flex-col p-5 text-slate-700 bg-gradient-to-br from-rose-50 via-white to-pink-100">
+        <TopBar online={online} pending={pending} />
         <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
           <div>
-            <p className="text-white/70 text-sm">Hola</p>
-            <h2 className="text-4xl font-bold">{selected.name}</h2>
-            <p className="text-white/70 mt-2 tabular-nums text-lg">
+            <p className="text-slate-500 text-sm">Hola</p>
+            <h2 className="text-4xl font-bold text-slate-800">{selected.name}</h2>
+            <p className="text-slate-600 mt-2 tabular-nums text-lg">
               {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }) : "--:--"}
             </p>
-            <p className="text-white/60 text-xs">
+            <p className="text-slate-500 text-xs">
               {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
             </p>
-
           </div>
 
           <div className="w-full max-w-xs space-y-3">
@@ -445,13 +437,13 @@ function Index() {
 
             <Button
               variant="ghost"
-              className="w-full text-white hover:bg-white/10 hover:text-white"
+              className="w-full text-slate-600 hover:bg-pink-100 hover:text-slate-800"
               onClick={() => setSelected(null)}
             >
               Cancelar
             </Button>
           </div>
-          <p className="text-xs text-white/60 flex items-center gap-1">
+          <p className="text-xs text-slate-500 flex items-center gap-1">
             <Camera className="h-3 w-3" /> Se tomará una foto al checar
           </p>
         </div>
@@ -467,29 +459,28 @@ function Index() {
     );
   }
 
-  // Keypad
+  // Pantalla del PIN
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-950 via-pink-950 to-rose-950 text-white flex flex-col p-5">
-      <TopBar online={online} pending={pending} dark />
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-100 text-slate-700 flex flex-col p-5">
+      <TopBar online={online} pending={pending} />
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
         <div className="text-center">
-          <p className="text-5xl font-bold tabular-nums tracking-tight">
+          <p className="text-5xl font-bold tabular-nums tracking-tight text-slate-700">
             {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true }) : "--:--"}
           </p>
-          <p className="text-white/60 text-sm capitalize">
+          <p className="text-slate-500 text-sm capitalize">
             {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
           </p>
-
         </div>
 
         <div>
-          <p className="text-center text-white/70 text-sm mb-3">Ingresa tu PIN</p>
+          <p className="text-center text-slate-600 text-sm mb-3">Ingresa tu PIN</p>
           <div className="flex gap-3 justify-center">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
                 className={`h-4 w-4 rounded-full border-2 transition-colors ${
-                  pin.length > i ? "bg-white border-white" : "border-white/40"
+                  pin.length > i ? "bg-pink-400 border-pink-400" : "border-pink-200"
                 }`}
               />
             ))}
@@ -507,9 +498,9 @@ function Index() {
           <KeypadBtn onClick={() => pinPress("del")}>⌫</KeypadBtn>
         </div>
 
-        <div className="flex gap-2 text-xs flex-wrap justify-center text-white/50">
+        <div className="flex gap-2 text-xs flex-wrap justify-center text-slate-500">
           {employees.map((e) => (
-            <span key={e.id} className="px-2 py-1 rounded-full bg-white/5">
+            <span key={e.id} className="px-2 py-1 rounded-full bg-white/70 border border-pink-100">
               {e.name}
             </span>
           ))}
@@ -542,7 +533,6 @@ function Index() {
             💵 Mis Pagos
           </Button>
         </Link>
-
         <Link to="/clientes">
           <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
             💖 Clientes
@@ -564,12 +554,12 @@ function Index() {
           </Button>
         </Link>
         <Link to="/empleadas">
-          <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
+          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-pink-100 hover:text-slate-800">
             <Settings className="h-4 w-4 mr-1" /> Colaboradores
           </Button>
         </Link>
         <Link to="/admin">
-          <Button variant="ghost" size="sm" className="text-white/70 hover:bg-white/10 hover:text-white">
+          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-pink-100 hover:text-slate-800">
             Reportes
           </Button>
         </Link>
@@ -583,7 +573,7 @@ function KeypadBtn({ children, onClick }: { children: React.ReactNode; onClick: 
     <button
       type="button"
       onClick={onClick}
-      className="h-16 rounded-2xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-2xl font-semibold transition-colors backdrop-blur"
+      className="h-16 rounded-2xl bg-white/80 border border-pink-100 shadow-sm hover:bg-pink-50 active:bg-pink-100 text-slate-700 text-2xl font-semibold transition-colors backdrop-blur"
     >
       {children}
     </button>
@@ -610,8 +600,8 @@ function ActionBtn({
       disabled={busy}
       className={`w-full h-14 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-colors ${
         primary
-          ? "bg-white text-slate-900 hover:bg-white/90"
-          : "bg-white/15 text-white hover:bg-white/25"
+          ? "bg-gradient-to-r from-pink-400 to-rose-300 text-white shadow-md hover:from-pink-500 hover:to-rose-400"
+          : "bg-white/80 border border-pink-100 text-slate-700 hover:bg-pink-50 shadow-sm"
       } disabled:opacity-60`}
     >
       {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
@@ -620,8 +610,8 @@ function ActionBtn({
   );
 }
 
-function TopBar({ online, pending, dark }: { online: boolean; pending: number; dark?: boolean }) {
-  const muted = dark ? "text-white/70" : "text-muted-foreground";
+function TopBar({ online, pending }: { online: boolean; pending: number }) {
+  const muted = "text-slate-500";
   return (
     <div className={`flex items-center justify-between text-xs ${muted}`}>
       <span className="flex items-center gap-1">
@@ -629,7 +619,7 @@ function TopBar({ online, pending, dark }: { online: boolean; pending: number; d
         {online ? "En línea" : "Sin conexión"}
       </span>
       {pending > 0 && (
-        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">
+        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700">
           {pending} pendiente{pending === 1 ? "" : "s"}
         </span>
       )}
@@ -649,4 +639,3 @@ function labelFor(t: EntryType) {
       return "Fin de descanso";
   }
 }
- 
