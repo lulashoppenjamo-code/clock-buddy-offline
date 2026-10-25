@@ -1,11 +1,24 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toISODate, weekStart, parseISODate, type RestSchedule, type RestOverride, type RestDay } from "@/lib/rest-days";
+import {
+  toISODate,
+  weekStart,
+  parseISODate,
+  type RestSchedule,
+  type RestOverride,
+  type RestDay,
+} from "@/lib/rest-days";
 
 /** Minutos de tolerancia después de la hora asignada que aún cuentan como puntual. */
 export const TOLERANCE_MINUTES = 5;
 
 /** Hora usada cuando la colaboradora aún no tiene horario asignado. */
 export const FALLBACK_HOUR = 10;
+
+/** Minutos máximos de comida (break_start → break_end). */
+export const LUNCH_MAX_MINUTES = 120;
+
+/** Minutos antes del fin de turno que aún se aceptan sin comentario. */
+export const EARLY_OUT_FREE_MINUTES = 2;
 
 export type EmployeeSchedule = {
   id: string;
@@ -121,9 +134,6 @@ export function evaluateClockIn(
   return { onTime: mins <= limit, lateMinutes: Math.max(0, mins - limit) };
 }
 
-/** Minutos máximos de comida (break_start → break_end). */
-export const LUNCH_MAX_MINUTES = 120;
-
 /**
  * Evalúa regreso de comida: si tardó más de LUNCH_MAX_MINUTES desde break_start.
  */
@@ -150,9 +160,6 @@ export function expectedStartLabel(schedule: EmployeeSchedule | undefined): stri
   return formatMinutesClock(timeToMinutes(schedule.start_time));
 }
 
-/** Minutos antes del fin de turno que aún se aceptan sin comentario. */
-export const EARLY_OUT_FREE_MINUTES = 2;
-
 /**
  * Evalúa si la salida es anticipada respecto al horario de fin.
  * earlyMinutes > EARLY_OUT_FREE_MINUTES → debe pedir comentario.
@@ -165,7 +172,6 @@ export function evaluateEarlyClockOut(
   if (schedule?.active && schedule.end_time) {
     endMins = timeToMinutes(schedule.end_time);
   } else {
-    // Fallback jornada hasta 18:00
     endMins = 18 * 60;
   }
   const nowMins = when.getHours() * 60 + when.getMinutes();
@@ -177,4 +183,3 @@ export function evaluateEarlyClockOut(
     endLabel: formatMinutesClock(endMins),
   };
 }
-
