@@ -25,6 +25,7 @@ import {
   type EmployeeSchedule,
 } from "@/lib/schedule";
 import { getLateStats } from "@/lib/late-tracking";
+import { getCache, setCache } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -98,19 +99,51 @@ function AdminPage({ ownerId }: { ownerId: string }) {
 
   async function load(uid: string) {
     setRefreshing(true);
-    const [{ data: emps }, { data: ents }, scheds] = await Promise.all([
-      supabase.from("employees").select("id,name,color").eq("owner_id", uid).order("name"),
-      supabase
-        .from("time_entries")
-        .select("id,employee_id,type,occurred_at,latitude,longitude,accuracy,photo_path")
-        .eq("owner_id", uid)
-        .order("occurred_at", { ascending: false })
-        .limit(1000),
-      fetchSchedules(uid).catch(() => [] as EmployeeSchedule[]),
-    ]);
-    setEmployees(emps ?? []);
-    setEntries((ents ?? []) as Entry[]);
-    setSchedules(scheds);
+    const empKey = `admin_employees:${uid}`;
+    const entKey = `admin_time_entries:${uid}`;
+    const schKey = `admin_schedules:${uid}`;
+
+    // Mostrar caché de inmediato (offline o mientras carga)
+    try {
+      const [cEmp, cEnt, cSch] = await Promise.all([
+        getCache<Employee[]>(empKey),
+        getCache<Entry[]>(entKey),
+        getCache<EmployeeSchedule[]>(schKey),
+      ]);
+      if (cEmp?.length) setEmployees(cEmp);
+      if (cEnt?.length) setEntries(cEnt);
+      if (cSch?.length) setSchedules(cSch);
+    } catch { /* ignore */ }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setRefreshing(false);
+      return;
+    }
+
+    try {
+      const [{ data: emps }, { data: ents }, scheds] = await Promise.all([
+        supabase.from("employees").select("id,name,color").eq("owner_id", uid).order("name"),
+        supabase
+          .from("time_entries")
+          .select("id,employee_id,type,occurred_at,latitude,longitude,accuracy,photo_path")
+          .eq("owner_id", uid)
+          .order("occurred_at", { ascending: false })
+          .limit(1000),
+        fetchSchedules(uid).catch(() => [] as EmployeeSchedule[]),
+      ]);
+      if (emps) {
+        setEmployees(emps);
+        await setCache(empKey, emps);
+      }
+      if (ents) {
+        setEntries(ents as Entry[]);
+        await setCache(entKey, ents);
+      }
+      setSchedules(scheds);
+      await setCache(schKey, scheds);
+    } catch {
+      // Se mantiene lo cacheado
+    }
     setRefreshing(false);
   }
 
