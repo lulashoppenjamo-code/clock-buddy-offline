@@ -234,6 +234,7 @@ export type Database = {
           registered_by_id: string | null
           registered_by_name: string | null
           school: string | null
+          school_id: string | null
           start_date: string | null
           updated_at: string
           whatsapp: string | null
@@ -253,6 +254,7 @@ export type Database = {
           registered_by_id?: string | null
           registered_by_name?: string | null
           school?: string | null
+          school_id?: string | null
           start_date?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -272,11 +274,20 @@ export type Database = {
           registered_by_id?: string | null
           registered_by_name?: string | null
           school?: string | null
+          school_id?: string | null
           start_date?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_schedules: {
         Row: {
@@ -1150,6 +1161,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      schools: {
+        Row: {
+          active: boolean
+          contact_name: string | null
+          created_at: string
+          discount_type: string | null
+          end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          contact_name?: string | null
+          created_at?: string
+          discount_type?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          contact_name?: string | null
+          created_at?: string
+          discount_type?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       shortage_reports: {
         Row: {
