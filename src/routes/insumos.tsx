@@ -87,6 +87,11 @@ function InsumosRoute() {
             window.localStorage.setItem("checador.ownerId", uid);
           } catch {}
         }
+        // Caché de insumos siempre disponible offline
+        try {
+          const cachedSups = await getCache<any[]>("supplies:" + (uid || saved || "x"));
+          if (mounted && cachedSups?.length) setSupplies(cachedSups);
+        } catch {}
         if (uid && navigator.onLine) {
           const [{ data: emps }, { data: sups }] = await Promise.all([
             supabase
@@ -107,7 +112,10 @@ function InsumosRoute() {
               setEmployees(emps);
               await cacheEmployees(emps);
             }
-            if (sups) setSupplies(sups);
+            if (sups) {
+              setSupplies(sups);
+              await setCache("supplies:" + uid, sups);
+            }
           }
         }
       } catch {}
@@ -156,14 +164,27 @@ function InsumosRoute() {
 
   async function refreshMine() {
     if (!ownerId || !employee) return;
-    const { data } = await supabase
-      .from("supply_requests")
-      .select("id,supply_id,quantity,status,requested_at,reason")
-      .eq("owner_id", ownerId)
-      .eq("employee_id", employee.id)
-      .order("requested_at", { ascending: false })
-      .limit(20);
-    setMyRequests((data ?? []) as MyRequest[]);
+    const cacheKey = `supply_requests:${ownerId}:${employee.id}`;
+    if (!navigator.onLine) {
+      const cached = await getCache<MyRequest[]>(cacheKey);
+      if (cached) setMyRequests(cached);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("supply_requests")
+        .select("id,supply_id,quantity,status,requested_at,reason")
+        .eq("owner_id", ownerId)
+        .eq("employee_id", employee.id)
+        .order("requested_at", { ascending: false })
+        .limit(20);
+      const list = (data ?? []) as MyRequest[];
+      setMyRequests(list);
+      await setCache(cacheKey, list);
+    } catch {
+      const cached = await getCache<MyRequest[]>(cacheKey);
+      if (cached) setMyRequests(cached);
+    }
   }
 
   function pinPress(n: string) {
@@ -183,8 +204,9 @@ function InsumosRoute() {
     }
     setBusy(true);
     try {
-      const { error } = await supabase.from("supply_requests").insert({
-        client_id: uuid(),
+      const id = uuid();
+      const payload = {
+        client_id: id,
         owner_id: ownerId,
         employee_id: employee.id,
         branch,
@@ -193,9 +215,15 @@ function InsumosRoute() {
         reason,
         notes: notes || null,
         status: "pendiente",
-      });
-      if (error) throw error;
-      toast.success("Solicitud enviada");
+      };
+      if (!navigator.onLine) {
+        await queueMutation({ id, kind: "supply_request", payload });
+        toast.success("Solicitud guardada offline · se enviará al volver internet");
+      } else {
+        const { error } = await supabase.from("supply_requests").insert(payload);
+        if (error) throw error;
+        toast.success("Solicitud enviada");
+      }
       setSupplyId("");
       setQuantity("1");
       setReason("terminado");
