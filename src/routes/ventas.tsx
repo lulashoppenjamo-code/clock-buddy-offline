@@ -24,7 +24,7 @@ import {
   branchName,
   type Branch,
 } from "@/lib/addon-sales";
-import { getCachedEmployees, cacheEmployees } from "@/lib/offline-queue";
+import { getCachedEmployees, cacheEmployees, getCache, setCache, queueMutation } from "@/lib/offline-queue";
 
 export const Route = createFileRoute("/ventas")({
   head: () => ({
@@ -153,14 +153,27 @@ function VentasRoute() {
 
   async function refreshMine() {
     if (!ownerId || !employee) return;
-    const { data } = await supabase
-      .from("addon_sales")
-      .select("id,main_product,addon_product,ticket_number,status,sold_at,branch")
-      .eq("owner_id", ownerId)
-      .eq("employee_id", employee.id)
-      .order("sold_at", { ascending: false })
-      .limit(20);
-    setMine((data ?? []) as MySale[]);
+    const cacheKey = `addon_sales:${ownerId}:${employee.id}`;
+    if (!navigator.onLine) {
+      const cached = await getCache<MySale[]>(cacheKey);
+      if (cached) setMine(cached);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from("addon_sales")
+        .select("id,main_product,addon_product,ticket_number,status,sold_at,branch")
+        .eq("owner_id", ownerId)
+        .eq("employee_id", employee.id)
+        .order("sold_at", { ascending: false })
+        .limit(20);
+      const list = (data ?? []) as MySale[];
+      setMine(list);
+      await setCache(cacheKey, list);
+    } catch {
+      const cached = await getCache<MySale[]>(cacheKey);
+      if (cached) setMine(cached);
+    }
   }
 
   function pinPress(n: string) {
@@ -194,20 +207,10 @@ function VentasRoute() {
       toast.error("La foto del ticket es obligatoria");
       return;
     }
-    if (!online) {
-      toast.error("Se necesita conexión para subir la evidencia");
-      return;
-    }
     setBusy(true);
     try {
       const id = uuid();
-      const path = `${ownerId}/ventas/${id}.jpg`;
-      const up = await supabase.storage
-        .from("checador-photos")
-        .upload(path, photo, { contentType: "image/jpeg", upsert: true });
-      if (up.error) throw up.error;
-
-      const { error } = await supabase.from("addon_sales").insert({
+      const payload = {
         client_id: id,
         owner_id: ownerId,
         employee_id: employee.id,
@@ -216,13 +219,44 @@ function VentasRoute() {
         main_product: mainProduct.trim(),
         addon_product: addonProduct.trim(),
         ticket_number: ticket.trim(),
-        photo_path: path,
+        photo_path: `${ownerId}/ventas/${id}.jpg`,
         comment: comment.trim() || null,
         status: "pendiente",
-      });
-      if (error) throw error;
+      };
 
-      toast.success("Venta agregada registrada");
+      if (!online) {
+        await queueMutation({
+          id,
+          kind: "addon_sale",
+          payload,
+          photo_blob: photo,
+          photo_path: payload.photo_path,
+        });
+        const cacheKey = `addon_sales:${ownerId}:${employee.id}`;
+        const prev = (await getCache<MySale[]>(cacheKey)) ?? [];
+        const optimistic: MySale = {
+          id,
+          main_product: payload.main_product as string,
+          addon_product: payload.addon_product as string,
+          ticket_number: payload.ticket_number as string,
+          status: "pendiente",
+          sold_at: new Date().toISOString(),
+          branch: branch as string,
+        };
+        await setCache(cacheKey, [optimistic, ...prev].slice(0, 20));
+        setMine((m) => [optimistic, ...m].slice(0, 20));
+        toast.success("Venta guardada offline · se subirá al volver internet");
+      } else {
+        const path = payload.photo_path as string;
+        const up = await supabase.storage
+          .from("checador-photos")
+          .upload(path, photo, { contentType: "image/jpeg", upsert: true });
+        if (up.error) throw up.error;
+
+        const { error } = await supabase.from("addon_sales").insert(payload);
+        if (error) throw error;
+        toast.success("Venta agregada registrada");
+      }
       setMainProduct("");
       setAddonProduct("");
       setTicket("");
