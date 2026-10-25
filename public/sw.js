@@ -1,5 +1,5 @@
 // Service Worker — Reloj Checador offline-first (estable)
-const VERSION = "v5";
+const VERSION = "v6";
 const SHELL_CACHE = `checador-shell-${VERSION}`;
 const ASSET_CACHE = `checador-assets-${VERSION}`;
 const MISC_CACHE = `checador-misc-${VERSION}`;
@@ -21,6 +21,13 @@ const SHELL_URLS = [
   "/ranking",
   "/meta-mensual",
   "/perfumes",
+  "/admin-ventas",
+  "/admin-faltantes",
+  "/admin-insumos",
+  "/admin-limpieza",
+  "/admin-pagos",
+  "/admin-vacaciones",
+  "/admin-descansos",
   "/manifest.json",
   "/icon-512.png",
   "/offline.html",
