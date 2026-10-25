@@ -149,3 +149,58 @@ export function expectedStartLabel(schedule: EmployeeSchedule | undefined): stri
   if (!schedule?.active) return `${FALLBACK_HOUR}:00 AM`;
   return formatMinutesClock(timeToMinutes(schedule.start_time));
 }
+
+
+/** Minutos antes del cierre en que ya se permite salir sin justificación. */
+export const EARLY_OUT_GRACE_MINUTES = 2;
+
+/**
+ * Evalúa si la salida es anticipada respecto a end_time del horario.
+ * early = true si falta más de EARLY_OUT_GRACE_MINUTES para la hora de cierre.
+ */
+export function evaluateEarlyClockOut(
+  when: Date,
+  schedule: EmployeeSchedule | undefined,
+): { early: boolean; minutesBeforeEnd: number; endLabel: string } {
+  const mins = when.getHours() * 60 + when.getMinutes();
+  let endMins: number;
+  if (schedule?.active && schedule.end_time) {
+    endMins = timeToMinutes(schedule.end_time);
+  } else {
+    // Fallback: jornada 10:00–18:00
+    endMins = 18 * 60;
+  }
+  const minutesBeforeEnd = endMins - mins;
+  const early = minutesBeforeEnd > EARLY_OUT_GRACE_MINUTES;
+  return {
+    early,
+    minutesBeforeEnd: Math.max(0, minutesBeforeEnd),
+    endLabel: formatMinutesClock(endMins),
+  };
+}
+
+
+/** Minutos antes del fin de turno que aún se aceptan sin comentario (ej. 2). */
+export const EARLY_OUT_FREE_MINUTES = 2;
+
+/**
+ * Evalúa si la salida es anticipada respecto al horario de fin.
+ * earlyMinutes > EARLY_OUT_FREE_MINUTES → debe pedir comentario.
+ */
+export function evaluateEarlyClockOut(
+  when: Date,
+  schedule: EmployeeSchedule | undefined,
+): { early: boolean; earlyMinutes: number; requiresComment: boolean; endLabel: string } {
+  if (!schedule?.active) {
+    return { early: false, earlyMinutes: 0, requiresComment: false, endLabel: "—" };
+  }
+  const endMins = timeToMinutes(schedule.end_time);
+  const nowMins = when.getHours() * 60 + when.getMinutes();
+  const earlyMinutes = Math.max(0, endMins - nowMins);
+  return {
+    early: earlyMinutes > 0,
+    earlyMinutes,
+    requiresComment: earlyMinutes > EARLY_OUT_FREE_MINUTES,
+    endLabel: formatMinutesClock(endMins),
+  };
+}
