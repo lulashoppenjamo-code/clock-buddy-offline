@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, CheckCircle2, ClipboardList, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useOnline } from "@/lib/use-online";
-import { getCachedEmployees, cacheEmployees } from "@/lib/offline-queue";
+import { getCachedEmployees, cacheEmployees, getCache, setCache, queueMutation } from "@/lib/offline-queue";
+import { uuid } from "@/lib/uuid";
 import {
   BRANCHES,
   branchName,
@@ -132,14 +133,25 @@ function FaltantesRoute() {
   useEffect(() => {
     if (!ownerId || !employee) return;
     (async () => {
-      const { data } = await supabase
-        .from("shortage_reports")
-        .select("*")
-        .eq("owner_id", ownerId)
-        .eq("employee_id", employee.id)
-        .order("report_date", { ascending: false })
-        .limit(10);
-      const list = (data ?? []) as ShortageReport[];
+      const cacheKey = `shortage_reports:${ownerId}:${employee.id}`;
+      let list: ShortageReport[] = [];
+      if (!navigator.onLine) {
+        list = (await getCache<ShortageReport[]>(cacheKey)) ?? [];
+      } else {
+        try {
+          const { data } = await supabase
+            .from("shortage_reports")
+            .select("*")
+            .eq("owner_id", ownerId)
+            .eq("employee_id", employee.id)
+            .order("report_date", { ascending: false })
+            .limit(10);
+          list = (data ?? []) as ShortageReport[];
+          await setCache(cacheKey, list);
+        } catch {
+          list = (await getCache<ShortageReport[]>(cacheKey)) ?? [];
+        }
+      }
       setRecent(list);
       const today = list.find((r) => r.report_date === todayISO()) ?? null;
       setSentToday(today);
@@ -169,29 +181,42 @@ function FaltantesRoute() {
     }
     setBusy(true);
     try {
-      const { data, error } = await supabase
-        .from("shortage_reports")
-        .upsert(
-          {
-            owner_id: ownerId,
-            employee_id: employee.id,
-            employee_name: employee.name,
-            branch,
-            report_date: todayISO(),
-            items,
-            comment: comment.trim() || null,
-          },
-          { onConflict: "employee_id,report_date" },
-        )
-        .select()
-        .single();
-      if (error) throw error;
-      setSentToday(data as ShortageReport);
-      setRecent((prev) => [
-        data as ShortageReport,
-        ...prev.filter((r) => r.report_date !== todayISO()),
-      ]);
-      toast.success("¡Reporte enviado!");
+      const row = {
+        owner_id: ownerId,
+        employee_id: employee.id,
+        employee_name: employee.name,
+        branch,
+        report_date: todayISO(),
+        items,
+        comment: comment.trim() || null,
+      };
+      if (!navigator.onLine) {
+        await queueMutation({
+          id: uuid(),
+          kind: "shortage_report",
+          payload: row,
+        });
+        const optimistic = { id: "local-" + todayISO(), ...row } as ShortageReport;
+        setSentToday(optimistic);
+        setRecent((prev) => [optimistic, ...prev.filter((r) => r.report_date !== todayISO())]);
+        const cacheKey = `shortage_reports:${ownerId}:${employee.id}`;
+        const prev = (await getCache<ShortageReport[]>(cacheKey)) ?? [];
+        await setCache(cacheKey, [optimistic, ...prev.filter((r) => r.report_date !== todayISO())].slice(0, 10));
+        toast.success("Reporte guardado offline · se enviará al volver internet");
+      } else {
+        const { data, error } = await supabase
+          .from("shortage_reports")
+          .upsert(row, { onConflict: "employee_id,report_date" })
+          .select()
+          .single();
+        if (error) throw error;
+        setSentToday(data as ShortageReport);
+        setRecent((prev) => [
+          data as ShortageReport,
+          ...prev.filter((r) => r.report_date !== todayISO()),
+        ]);
+        toast.success("¡Reporte enviado!");
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo enviar");
     } finally {
