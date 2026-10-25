@@ -94,6 +94,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
 
   const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "behavior">("list");
+  const [expandedBehaviorId, setExpandedBehaviorId] = useState<string | null>(null);
 
   async function load(uid: string) {
     setRefreshing(true);
@@ -171,9 +172,30 @@ function AdminPage({ ownerId }: { ownerId: string }) {
     return perEmp;
   }, [filtered, employees]);
 
-  /** Comportamiento de entradas/salidas por colaboradora en el rango filtrado */
+  /** Comportamiento detallado de entradas/salidas/comida por colaboradora */
   const behavior = useMemo(() => {
     const idx = scheduleIndex(schedules);
+    type EntryDay = {
+      date: string;
+      clockIn: string | null;
+      clockOut: string | null;
+      expectedStart: string | null;
+      lateMinutes: number;
+      onTime: boolean | null;
+      entryMins: number | null;
+    };
+    type LunchDay = {
+      date: string;
+      breakStart: string | null;
+      breakEnd: string | null;
+      durationMinutes: number;
+      lateMinutes: number;
+      onTime: boolean;
+    };
+    type DayTimeline = {
+      date: string;
+      events: Array<{ type: Entry["type"]; time: string; at: string }>;
+    };
     type Row = {
       id: string;
       name: string;
@@ -187,6 +209,12 @@ function AdminPage({ ownerId }: { ownerId: string }) {
       avgLunchMins: number | null;
       recurrenceEntry: boolean;
       recurrenceLunch: boolean;
+      worstEntry: EntryDay | null;
+      earliestEntry: EntryDay | null;
+      worstLunch: LunchDay | null;
+      entryDays: EntryDay[];
+      lunchDays: LunchDay[];
+      timeline: DayTimeline[];
     };
     const rows: Row[] = [];
     for (const emp of employees) {
@@ -195,6 +223,16 @@ function AdminPage({ ownerId }: { ownerId: string }) {
         .filter((e) => e.employee_id === emp.id)
         .slice()
         .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
+
+      const byDate = new Map<string, Entry[]>();
+      for (const e of list) {
+        const d = format(parseISO(e.occurred_at), "yyyy-MM-dd");
+        (byDate.get(d) ?? byDate.set(d, []).get(d)!).push(e);
+      }
+
+      const entryDays: EntryDay[] = [];
+      const lunchDays: LunchDay[] = [];
+      const timeline: DayTimeline[] = [];
       let entrySum = 0;
       let entryCount = 0;
       let lateIns = 0;
@@ -202,32 +240,90 @@ function AdminPage({ ownerId }: { ownerId: string }) {
       let lunchCount = 0;
       let lunchSum = 0;
       let lateLunches = 0;
-      let lastBreakStart: Date | null = null;
-      for (const e of list) {
-        const when = parseISO(e.occurred_at);
-        if (e.type === "clock_in") {
-          const mins = when.getHours() * 60 + when.getMinutes();
-          entrySum += mins;
-          entryCount += 1;
-          const sch = idx.get(`${emp.id}|${when.getDay()}`);
-          const ev = evaluateClockIn(when, sch);
-          if (ev && !ev.onTime) {
-            lateIns += 1;
-            lateSum += ev.lateMinutes;
-          }
-        } else if (e.type === "break_start") {
-          lastBreakStart = when;
-        } else if (e.type === "break_end") {
-          if (lastBreakStart) {
-            const ev = evaluateBreakReturn(lastBreakStart, when);
+
+      const dates = Array.from(byDate.keys()).sort();
+      for (const date of dates) {
+        const dayEntries = byDate.get(date)!;
+        const day = parseISO(date + "T12:00:00");
+        const sch = idx.get(`${emp.id}|${day.getDay()}`);
+        let expectedLabel: string | null = null;
+        if (sch?.active) {
+          const [h, m] = sch.start_time.split(":");
+          expectedLabel = formatMinutesClock(Number(h) * 60 + Number(m));
+        }
+
+        let clockIn: string | null = null;
+        let clockOut: string | null = null;
+        let entryMins: number | null = null;
+        let lateMinutes = 0;
+        let onTime: boolean | null = null;
+        let breakStartAt: Date | null = null;
+        const dayEvents: DayTimeline["events"] = [];
+
+        for (const e of dayEntries) {
+          const when = parseISO(e.occurred_at);
+          const timeStr = format(when, "h:mm a", { locale: es });
+          dayEvents.push({ type: e.type, time: timeStr, at: e.occurred_at });
+
+          if (e.type === "clock_in" && !clockIn) {
+            clockIn = timeStr;
+            entryMins = when.getHours() * 60 + when.getMinutes();
+            entrySum += entryMins;
+            entryCount += 1;
+            const ev = evaluateClockIn(when, sch);
+            if (ev) {
+              onTime = ev.onTime;
+              lateMinutes = ev.lateMinutes;
+              if (!ev.onTime) {
+                lateIns += 1;
+                lateSum += ev.lateMinutes;
+              }
+            }
+          } else if (e.type === "clock_out") {
+            clockOut = timeStr;
+          } else if (e.type === "break_start") {
+            breakStartAt = when;
+          } else if (e.type === "break_end" && breakStartAt) {
+            const ev = evaluateBreakReturn(breakStartAt, when);
             lunchCount += 1;
             lunchSum += ev.durationMinutes;
             if (!ev.onTime) lateLunches += 1;
-            lastBreakStart = null;
+            lunchDays.push({
+              date,
+              breakStart: format(breakStartAt, "h:mm a", { locale: es }),
+              breakEnd: timeStr,
+              durationMinutes: ev.durationMinutes,
+              lateMinutes: ev.lateMinutes,
+              onTime: ev.onTime,
+            });
+            breakStartAt = null;
           }
         }
+
+        if (clockIn || clockOut) {
+          entryDays.push({
+            date,
+            clockIn,
+            clockOut,
+            expectedStart: expectedLabel,
+            lateMinutes,
+            onTime,
+            entryMins,
+          });
+        }
+        if (dayEvents.length) {
+          timeline.push({ date, events: dayEvents });
+        }
       }
+
       const local = getLateStats(emp.id);
+      const worstEntry =
+        entryDays.filter((d) => d.lateMinutes > 0).sort((a, b) => b.lateMinutes - a.lateMinutes)[0] ?? null;
+      const earliestEntry =
+        entryDays.filter((d) => d.entryMins != null).sort((a, b) => (a.entryMins! - b.entryMins!))[0] ?? null;
+      const worstLunch =
+        lunchDays.filter((d) => d.lateMinutes > 0).sort((a, b) => b.lateMinutes - a.lateMinutes)[0] ?? null;
+
       rows.push({
         id: emp.id,
         name: emp.name,
@@ -241,6 +337,12 @@ function AdminPage({ ownerId }: { ownerId: string }) {
         avgLunchMins: lunchCount ? lunchSum / lunchCount : null,
         recurrenceEntry: lateIns >= 2 || local.entryLates >= 2,
         recurrenceLunch: lateLunches >= 2 || local.lunchLates >= 2,
+        worstEntry,
+        earliestEntry,
+        worstLunch,
+        entryDays: entryDays.slice().reverse(),
+        lunchDays: lunchDays.slice().reverse(),
+        timeline: timeline.slice().reverse(),
       });
     }
     rows.sort((a, b) => b.lateIns - a.lateIns || a.name.localeCompare(b.name, "es"));
@@ -487,57 +589,224 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               Comportamiento de entradas y salidas
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Promedio de hora de entrada, retardos (tol. {TOLERANCE_MINUTES} min) y comida
-              (máx. {LUNCH_MAX_MINUTES} min). Reincidencia = 2 o más retardos en el periodo.
+              Toca una colaboradora para ver el detalle día por día: entradas, salidas, comida y retardos
+              (tol. {TOLERANCE_MINUTES} min · comida máx. {LUNCH_MAX_MINUTES} min).
             </p>
             <div className="space-y-2">
               {behavior.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-4">Sin datos en este rango</p>
               )}
-              {behavior.map((b) => (
-                <div
-                  key={b.id}
-                  className={`rounded-lg border p-3 text-xs space-y-1.5 ${
-                    b.recurrenceEntry || b.recurrenceLunch ? "border-rose-300 bg-rose-50" : "bg-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ background: b.color || "#ec4899" }}
-                    />
-                    <span className="font-semibold text-sm">{b.name}</span>
-                    {(b.recurrenceEntry || b.recurrenceLunch) && (
-                      <span className="ml-auto inline-flex items-center gap-0.5 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-medium text-white">
-                        <AlertTriangle className="h-3 w-3" /> Reincidencia
-                      </span>
+              {behavior.map((b) => {
+                const open = expandedBehaviorId === b.id;
+                return (
+                  <div
+                    key={b.id}
+                    className={`rounded-lg border overflow-hidden ${
+                      b.recurrenceEntry || b.recurrenceLunch ? "border-rose-300" : "border-border"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedBehaviorId(open ? null : b.id)}
+                      className={`w-full p-3 text-left text-xs space-y-1.5 ${
+                        b.recurrenceEntry || b.recurrenceLunch ? "bg-rose-50" : "bg-white"
+                      } hover:bg-pink-50/80`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-2.5 w-2.5 rounded-full shrink-0"
+                          style={{ background: b.color || "#ec4899" }}
+                        />
+                        <span className="font-semibold text-sm">{b.name}</span>
+                        <span className="text-muted-foreground ml-auto text-[10px]">{open ? "▲" : "▼"}</span>
+                        {(b.recurrenceEntry || b.recurrenceLunch) && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-medium text-white">
+                            <AlertTriangle className="h-3 w-3" /> Reincidencia
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-muted-foreground">
+                        <div className="flex items-center gap-1 col-span-2">
+                          <Clock className="h-3 w-3" />
+                          Entrada prom.:{" "}
+                          <span className="font-medium text-foreground">
+                            {b.avgEntryMins != null ? formatMinutesClock(b.avgEntryMins) : "—"}
+                          </span>
+                        </div>
+                        <div>
+                          Entradas: <span className="font-medium text-foreground">{b.clockIns}</span>
+                        </div>
+                        <div className={b.lateIns > 0 ? "text-amber-700 font-medium" : ""}>
+                          Retardos: {b.lateIns}
+                          {b.lateIns > 0 ? ` · +${Math.round(b.avgLateMins)} min` : ""}
+                        </div>
+                        <div>
+                          Comidas: {b.lunchReturns}
+                          {b.avgLunchMins != null ? ` · ${Math.round(b.avgLunchMins)} min` : ""}
+                        </div>
+                        <div className={b.lateLunches > 0 ? "text-amber-700 font-medium" : ""}>
+                          Comida tarde: {b.lateLunches}
+                        </div>
+                      </div>
+                      {b.worstEntry && (
+                        <p className="text-[11px] text-rose-700 font-medium pt-0.5">
+                          Día más tarde: {format(parseISO(b.worstEntry.date + "T12:00:00"), "EEE d MMM", { locale: es })}{" "}
+                          a las {b.worstEntry.clockIn} (+{b.worstEntry.lateMinutes} min)
+                        </p>
+                      )}
+                    </button>
+
+                    {open && (
+                      <div className="border-t bg-white p-3 space-y-4 text-xs">
+                        {/* Resumen destacado */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-md bg-pink-50 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Entrada más temprana</p>
+                            <p className="font-semibold">
+                              {b.earliestEntry
+                                ? `${format(parseISO(b.earliestEntry.date + "T12:00:00"), "d MMM", { locale: es })} · ${b.earliestEntry.clockIn}`
+                                : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-amber-50 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Mayor retardo entrada</p>
+                            <p className="font-semibold text-amber-800">
+                              {b.worstEntry
+                                ? `${format(parseISO(b.worstEntry.date + "T12:00:00"), "d MMM", { locale: es })} · +${b.worstEntry.lateMinutes} min`
+                                : "Ninguno"}
+                            </p>
+                          </div>
+                          <div className="rounded-md bg-sky-50 p-2 col-span-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Mayor exceso de comida</p>
+                            <p className="font-semibold text-sky-900">
+                              {b.worstLunch
+                                ? `${format(parseISO(b.worstLunch.date + "T12:00:00"), "d MMM", { locale: es })} · ${b.worstLunch.durationMinutes} min (máx. ${LUNCH_MAX_MINUTES})`
+                                : "Ninguno"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Tabla entradas / salidas */}
+                        <div>
+                          <p className="font-semibold mb-1.5 flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" /> Entradas y salidas
+                          </p>
+                          {b.entryDays.length === 0 ? (
+                            <p className="text-muted-foreground">Sin entradas en el periodo</p>
+                          ) : (
+                            <div className="overflow-x-auto rounded-md border">
+                              <table className="w-full text-[11px]">
+                                <thead className="bg-muted/60">
+                                  <tr className="text-left">
+                                    <th className="px-2 py-1.5 font-medium">Día</th>
+                                    <th className="px-2 py-1.5 font-medium">Horario</th>
+                                    <th className="px-2 py-1.5 font-medium">Entrada</th>
+                                    <th className="px-2 py-1.5 font-medium">Salida</th>
+                                    <th className="px-2 py-1.5 font-medium">Estado</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {b.entryDays.map((d) => (
+                                    <tr key={d.date} className="border-t">
+                                      <td className="px-2 py-1.5 whitespace-nowrap">
+                                        {format(parseISO(d.date + "T12:00:00"), "EEE d MMM", { locale: es })}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-muted-foreground">
+                                        {d.expectedStart ?? "—"}
+                                      </td>
+                                      <td className="px-2 py-1.5 font-medium">{d.clockIn ?? "—"}</td>
+                                      <td className="px-2 py-1.5">{d.clockOut ?? "—"}</td>
+                                      <td className="px-2 py-1.5">
+                                        {d.onTime === null ? (
+                                          <span className="text-muted-foreground">—</span>
+                                        ) : d.onTime ? (
+                                          <span className="text-emerald-700 font-medium">A tiempo</span>
+                                        ) : (
+                                          <span className="text-rose-700 font-medium">+{d.lateMinutes} min</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tabla comida */}
+                        <div>
+                          <p className="font-semibold mb-1.5">🍽 Descanso comida y regreso</p>
+                          {b.lunchDays.length === 0 ? (
+                            <p className="text-muted-foreground">Sin registros de comida en el periodo</p>
+                          ) : (
+                            <div className="overflow-x-auto rounded-md border">
+                              <table className="w-full text-[11px]">
+                                <thead className="bg-muted/60">
+                                  <tr className="text-left">
+                                    <th className="px-2 py-1.5 font-medium">Día</th>
+                                    <th className="px-2 py-1.5 font-medium">Salida</th>
+                                    <th className="px-2 py-1.5 font-medium">Regreso</th>
+                                    <th className="px-2 py-1.5 font-medium">Duración</th>
+                                    <th className="px-2 py-1.5 font-medium">Estado</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {b.lunchDays.map((d, i) => (
+                                    <tr key={d.date + "-" + i} className="border-t">
+                                      <td className="px-2 py-1.5 whitespace-nowrap">
+                                        {format(parseISO(d.date + "T12:00:00"), "EEE d MMM", { locale: es })}
+                                      </td>
+                                      <td className="px-2 py-1.5">{d.breakStart ?? "—"}</td>
+                                      <td className="px-2 py-1.5">{d.breakEnd ?? "—"}</td>
+                                      <td className="px-2 py-1.5 font-medium">{d.durationMinutes} min</td>
+                                      <td className="px-2 py-1.5">
+                                        {d.onTime ? (
+                                          <span className="text-emerald-700 font-medium">OK</span>
+                                        ) : (
+                                          <span className="text-rose-700 font-medium">
+                                            +{d.lateMinutes} min (máx. {LUNCH_MAX_MINUTES})
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Línea de tiempo completa */}
+                        <div>
+                          <p className="font-semibold mb-1.5">Línea de tiempo del periodo</p>
+                          <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {b.timeline.map((day) => (
+                              <div key={day.date} className="rounded-md border p-2">
+                                <p className="font-medium text-[11px] mb-1">
+                                  {format(parseISO(day.date + "T12:00:00"), "EEEE d MMMM", { locale: es })}
+                                </p>
+                                <ul className="space-y-0.5 text-[11px] text-muted-foreground">
+                                  {day.events.map((ev, i) => (
+                                    <li key={i} className="flex gap-2">
+                                      <span className="tabular-nums w-16 shrink-0 text-foreground">{ev.time}</span>
+                                      <span>
+                                        {ev.type === "clock_in" && "Entrada"}
+                                        {ev.type === "clock_out" && "Salida"}
+                                        {ev.type === "break_start" && "Salida a comida"}
+                                        {ev.type === "break_end" && "Regreso de comida"}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-muted-foreground">
-                    <div className="flex items-center gap-1 col-span-2">
-                      <Clock className="h-3 w-3" />
-                      Entrada promedio:{" "}
-                      <span className="font-medium text-foreground">
-                        {b.avgEntryMins != null ? formatMinutesClock(b.avgEntryMins) : "—"}
-                      </span>
-                    </div>
-                    <div>
-                      Entradas: <span className="font-medium text-foreground">{b.clockIns}</span>
-                    </div>
-                    <div className={b.lateIns > 0 ? "text-amber-700 font-medium" : ""}>
-                      Retardos: {b.lateIns}
-                      {b.lateIns > 0 ? ` · +${Math.round(b.avgLateMins)} min prom.` : ""}
-                    </div>
-                    <div>
-                      Comidas: {b.lunchReturns}
-                      {b.avgLunchMins != null ? ` · ${Math.round(b.avgLunchMins)} min prom.` : ""}
-                    </div>
-                    <div className={b.lateLunches > 0 ? "text-amber-700 font-medium" : ""}>
-                      Comida tarde: {b.lateLunches}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         )}
