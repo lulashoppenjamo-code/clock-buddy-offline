@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCachedEmployees, cacheEmployees, getCache, setCache } from "@/lib/offline-queue";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,13 +84,22 @@ function PagosRoute() {
       }
       const ownerForLoad = uid ?? window.localStorage.getItem("checador.ownerId");
       if (ownerForLoad) {
-        const { data: emps } = await supabase
-          .from("employees")
-          .select("id,name,pin,color,branch")
-          .eq("owner_id", ownerForLoad)
-          .eq("active", true)
-          .order("name");
-        setEmployees((emps as any) ?? []);
+        const cached = await getCachedEmployees();
+        if (cached.length) setEmployees(cached as any);
+        if (navigator.onLine) {
+          try {
+            const { data: emps } = await supabase
+              .from("employees")
+              .select("id,name,pin,color,branch")
+              .eq("owner_id", ownerForLoad)
+              .eq("active", true)
+              .order("name");
+            if (emps) {
+              setEmployees(emps as any);
+              await cacheEmployees(emps as any);
+            }
+          } catch {}
+        }
       }
       setLoading(false);
     })();
@@ -187,13 +197,27 @@ function PagosPanel({
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("weekly_payments")
-        .select("week_start,loan_amount,paid")
-        .eq("owner_id", ownerId)
-        .eq("employee_id", employee.id)
-        .order("week_start", { ascending: false });
-      setRows(((data as any) ?? []) as PaymentRow[]);
+      const cacheKey = `weekly_payments:${ownerId}:${employee.id}`;
+      if (!navigator.onLine) {
+        const cached = await getCache<PaymentRow[]>(cacheKey);
+        if (cached) setRows(cached);
+        setLoading(false);
+        return;
+      }
+      try {
+        const { data } = await supabase
+          .from("weekly_payments")
+          .select("week_start,loan_amount,paid")
+          .eq("owner_id", ownerId)
+          .eq("employee_id", employee.id)
+          .order("week_start", { ascending: false });
+        const list = ((data as any) ?? []) as PaymentRow[];
+        setRows(list);
+        await setCache(cacheKey, list);
+      } catch {
+        const cached = await getCache<PaymentRow[]>(cacheKey);
+        if (cached) setRows(cached);
+      }
       setLoading(false);
     })();
   }, [ownerId, employee.id]);
