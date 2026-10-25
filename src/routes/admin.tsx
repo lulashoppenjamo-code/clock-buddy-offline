@@ -986,3 +986,4 @@ function typeLabel(t: Entry["type"]) {
         ? "Inicio descanso"
         : "Fin descanso";
 }
+ 
