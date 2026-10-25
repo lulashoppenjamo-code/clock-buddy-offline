@@ -1,14 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getPendingEntries, markSynced } from "./offline-queue";
 import {
-  getPendingCleaning,
-  markCleaningSynced,
-} from "./cleaning";
+  getPendingEntries,
+  markSynced,
+  getPendingMutations,
+  markMutationSynced,
+} from "./offline-queue";
+import { getPendingCleaning, markCleaningSynced } from "./cleaning";
 
 let syncing = false;
 
 export async function syncPending(): Promise<{ synced: number; failed: number }> {
   if (syncing) return { synced: 0, failed: 0 };
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return { synced: 0, failed: 0 };
+  }
   syncing = true;
   let synced = 0;
   let failed = 0;
@@ -102,6 +107,67 @@ export async function syncPending(): Promise<{ synced: number; failed: number }>
           synced++;
         }
       } catch {
+        failed++;
+      }
+    }
+
+    // 3) Mutaciones de módulos (ventas, faltantes, insumos…)
+    const mutations = await getPendingMutations();
+    for (const mut of mutations) {
+      try {
+        if (mut.kind === "addon_sale") {
+          let photo_path = (mut.payload.photo_path as string) || mut.photo_path || null;
+          if (mut.photo_blob) {
+            const path =
+              photo_path ||
+              `${mut.payload.owner_id}/ventas/${mut.id}.jpg`;
+            const { error: upErr } = await supabase.storage
+              .from("checador-photos")
+              .upload(path, mut.photo_blob, { contentType: "image/jpeg", upsert: true });
+            if (!upErr) photo_path = path;
+          }
+          const { error } = await supabase.from("addon_sales").insert({
+            ...mut.payload,
+            client_id: mut.payload.client_id ?? mut.id,
+            photo_path,
+          });
+          if (error && !/duplicate|unique|conflict/i.test(error.message)) throw error;
+          await markMutationSynced(mut.id, photo_path);
+          synced++;
+        } else if (mut.kind === "shortage_report") {
+          const { error } = await supabase
+            .from("shortage_reports")
+            .upsert(mut.payload, { onConflict: "employee_id,report_date" });
+          if (error && !/duplicate|unique|conflict/i.test(error.message)) throw error;
+          await markMutationSynced(mut.id);
+          synced++;
+        } else if (mut.kind === "supply_request") {
+          const { error } = await supabase.from("supply_requests").insert({
+            ...mut.payload,
+            client_id: mut.payload.client_id ?? mut.id,
+          });
+          if (error && !/duplicate|unique|conflict/i.test(error.message)) throw error;
+          await markMutationSynced(mut.id);
+          synced++;
+        } else if (mut.kind === "json_upsert") {
+          const table = String(mut.payload._table || "");
+          const row = { ...mut.payload };
+          delete row._table;
+          delete row._onConflict;
+          const onConflict = mut.payload._onConflict as string | undefined;
+          if (!table) throw new Error("json_upsert sin tabla");
+          const q = onConflict
+            ? supabase.from(table).upsert(row, { onConflict })
+            : supabase.from(table).insert(row);
+          const { error } = await q;
+          if (error && !/duplicate|unique|conflict/i.test(error.message)) throw error;
+          await markMutationSynced(mut.id);
+          synced++;
+        } else {
+          failed++;
+        }
+      } catch (e) {
+        console.warn("[sync] mutation failed", mut.kind, mut.id, e);
         failed++;
       }
     }
