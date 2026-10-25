@@ -113,10 +113,39 @@ export function evaluateClockIn(
 ): { onTime: boolean; lateMinutes: number } | null {
   const mins = when.getHours() * 60 + when.getMinutes();
   if (!schedule) {
-    const limit = FALLBACK_HOUR * 60;
+    const limit = FALLBACK_HOUR * 60 + TOLERANCE_MINUTES;
     return { onTime: mins <= limit, lateMinutes: Math.max(0, mins - limit) };
   }
   if (!schedule.active) return null;
   const limit = timeToMinutes(schedule.start_time) + TOLERANCE_MINUTES;
   return { onTime: mins <= limit, lateMinutes: Math.max(0, mins - limit) };
+}
+
+/** Minutos máximos de comida (break_start → break_end). */
+export const LUNCH_MAX_MINUTES = 120;
+
+/**
+ * Evalúa regreso de comida: si tardó más de LUNCH_MAX_MINUTES desde break_start.
+ */
+export function evaluateBreakReturn(
+  breakStart: Date,
+  breakEnd: Date,
+): { onTime: boolean; lateMinutes: number; durationMinutes: number } {
+  const durationMinutes = Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000);
+  const lateMinutes = Math.max(0, durationMinutes - LUNCH_MAX_MINUTES);
+  return { onTime: lateMinutes === 0, lateMinutes, durationMinutes };
+}
+
+export function formatMinutesClock(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+/** Texto de horario de entrada (HH:MM o fallback). */
+export function expectedStartLabel(schedule: EmployeeSchedule | undefined): string {
+  if (!schedule?.active) return `${FALLBACK_HOUR}:00 AM`;
+  return formatMinutesClock(timeToMinutes(schedule.start_time));
 }
