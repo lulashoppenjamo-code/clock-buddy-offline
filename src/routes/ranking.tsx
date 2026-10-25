@@ -119,6 +119,23 @@ function RankingPage() {
     if (!ownerId) return;
     (async () => {
       setLoading(true);
+      const cacheKey = `ranking_bundle:${ownerId}`;
+      if (!navigator.onLine) {
+        const cached = await getCache<any>(cacheKey);
+        if (cached) {
+          setSales(cached.sales ?? []);
+          setClockIns(cached.clockIns ?? []);
+          setCleaning(cached.cleaning ?? []);
+          setCustomers(cached.customers ?? []);
+          setPerfumes(cached.perfumes ?? []);
+          setEmployees(cached.employees ?? []);
+          if (cached.schedules) setSchedules(cached.schedules);
+          if (cached.restSet) setRestSet(new Set(cached.restSet));
+        }
+        setLoading(false);
+        return;
+      }
+
       const { month } = periodRanges();
       const since = month.toISOString();
       const [s, t, c, cu, emps, pf] = await Promise.all([
@@ -172,7 +189,19 @@ function RankingPage() {
         fetchRestData(ownerId),
       ]);
       setSchedules(scheds);
-      setRestSet(restDaySet(month, new Date(), rest.schedules, rest.overrides, rest.bonuses));
+      const rset = restDaySet(month, new Date(), rest.schedules, rest.overrides, rest.bonuses);
+      setRestSet(rset);
+      await setCache(`ranking_bundle:${ownerId}`, {
+        sales: s.data ?? [],
+        clockIns: t.data ?? [],
+        cleaning: c.data ?? [],
+        customers: cu.data ?? [],
+        employees: emps.data ?? [],
+        perfumes: pf.data ?? [],
+        schedules: scheds,
+        restSet: Array.from(rset),
+      });
+      if (emps.data) await cacheEmployees(emps.data.map((e: any) => ({ ...e, pin: e.pin ?? "" })));
       setLoading(false);
     })();
   }, [ownerId]);
