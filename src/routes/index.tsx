@@ -464,7 +464,6 @@ function Index() {
           onChange={onPhoto}
         />
       </div>
-      </>
     );
   }
 
