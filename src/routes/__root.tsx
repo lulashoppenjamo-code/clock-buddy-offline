@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { syncPending } from "@/lib/sync";
+import { startShellWarm } from "@/lib/offline-shell";
 
 import appCss from "../styles.css?url";
 
@@ -117,22 +118,52 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    // Registrar service worker para uso offline
+    // Registrar service worker (scope /) y forzar actualización
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register("/sw.js", { scope: "/" })
+        .then(async (reg) => {
+          await reg.update().catch(() => {});
+          reg.addEventListener("updatefound", () => {
+            const w = reg.installing;
+            if (!w) return;
+            w.addEventListener("statechange", () => {
+              if (w.state === "installed" && navigator.serviceWorker.controller) {
+                w.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
+        })
         .catch((e) => console.warn("SW register failed", e));
     }
 
-    // Sincronizar cuando vuelve internet o la pestaña se vuelve visible
+    // Calentar shell + assets para abrir offline
+    const stopShell = startShellWarm();
+
+    // Sincronizar cola de checadas / limpieza al volver internet
     const trySync = () => {
-      if (navigator.onLine) syncPending().catch(() => {});
+      if (navigator.onLine) {
+        syncPending()
+          .then((r) => {
+            if (r.synced > 0) {
+              import("sonner").then(({ toast }) => {
+                toast.success(
+                  r.synced === 1
+                    ? "1 registro sincronizado"
+                    : `${r.synced} registros sincronizados`,
+                );
+              });
+            }
+          })
+          .catch(() => {});
+      }
     };
     trySync();
     window.addEventListener("online", trySync);
     document.addEventListener("visibilitychange", trySync);
     const interval = window.setInterval(trySync, 30000);
     return () => {
+      stopShell?.();
       window.removeEventListener("online", trySync);
       document.removeEventListener("visibilitychange", trySync);
       window.clearInterval(interval);
