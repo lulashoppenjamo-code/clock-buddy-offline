@@ -204,3 +204,4 @@ export function evaluateEarlyClockOut(
     endLabel: formatMinutesClock(endMins),
   };
 }
+ 
