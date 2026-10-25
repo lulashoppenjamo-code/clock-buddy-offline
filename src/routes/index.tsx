@@ -15,7 +15,7 @@ import { syncPending } from "@/lib/sync";
 import { useOnline } from "@/lib/use-online";
 import { uuid } from "@/lib/uuid";
 import { captureFromFileInput, deviceLabel, geoReasonMessage, getPosition } from "@/lib/capture";
-import { fetchSchedules, scheduleIndex } from "@/lib/schedule";
+import { fetchSchedules, scheduleIndex, evaluateEarlyClockOut, EARLY_OUT_FREE_MINUTES } from "@/lib/schedule";
 import { feedbackClockIn, feedbackBreakEnd } from "@/lib/late-tracking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -42,6 +42,11 @@ function Index() {
   const [busy, setBusy] = useState<EntryType | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingActionRef = useRef<EntryType | null>(null);
+  const [earlyOutOpen, setEarlyOutOpen] = useState(false);
+  const [earlyOutComment, setEarlyOutComment] = useState("");
+  const [earlyOutInfo, setEarlyOutInfo] = useState<{ earlyMinutes: number; endLabel: string } | null>(null);
+  const pendingPhotoRef = useRef<Blob | null>(null);
+  const pendingEarlyTypeRef = useRef<EntryType | null>(null);
 
   // session + employees
   useEffect(() => {
@@ -167,7 +172,25 @@ function Index() {
     else if (pin.length < 4) setPin((p) => p + n);
   }
 
-  async function doCheck(type: EntryType, photoBlob: Blob | null) {
+
+  async function resolveScheduleForNow(empId: string) {
+    if (!ownerId) return undefined;
+    try {
+      let list = await getCache<any[]>(`admin_schedules:${ownerId}`);
+      if (navigator.onLine) {
+        try {
+          list = await fetchSchedules(ownerId);
+          await setCache(`admin_schedules:${ownerId}`, list);
+        } catch { /* cache */ }
+      }
+      if (list?.length) {
+        return scheduleIndex(list).get(`${empId}|${new Date().getDay()}`);
+      }
+    } catch { /* */ }
+    return undefined;
+  }
+
+  async function doCheck(type: EntryType, photoBlob: Blob | null, earlyComment?: string | null) {
     if (!selected || !ownerId) return;
     setBusy(type);
     try {
@@ -199,7 +222,9 @@ function Index() {
         accuracy: pos?.coords.accuracy ?? null,
         photo_blob: photoBlob,
         photo_path: null,
-        device_label: deviceLabel(),
+        device_label: earlyComment
+          ? `${deviceLabel()} · salida anticipada (${earlyComment})`
+          : deviceLabel(),
       };
       await queueEntry(entry);
 
@@ -288,7 +313,34 @@ function Index() {
         blob = null;
       }
     }
+    // Salida anticipada: si faltan más de 2 min al cierre de turno, pedir motivo
+    if (action === "clock_out" && selected) {
+      const sch = await resolveScheduleForNow(selected.id);
+      const evalEarly = evaluateEarlyClockOut(new Date(), sch);
+      if (evalEarly.requiresComment) {
+        pendingPhotoRef.current = blob;
+        pendingEarlyTypeRef.current = action;
+        setEarlyOutInfo({ earlyMinutes: evalEarly.earlyMinutes, endLabel: evalEarly.endLabel });
+        setEarlyOutComment("");
+        setEarlyOutOpen(true);
+        return;
+      }
+    }
     doCheck(action, blob);
+  }
+
+  async function confirmEarlyOut() {
+    const comment = earlyOutComment.trim();
+    if (comment.length < 3) {
+      toast.error("Escribe el motivo de la salida anticipada");
+      return;
+    }
+    const action = pendingEarlyTypeRef.current ?? "clock_out";
+    const blob = pendingPhotoRef.current;
+    setEarlyOutOpen(false);
+    pendingEarlyTypeRef.current = null;
+    pendingPhotoRef.current = null;
+    await doCheck(action, blob, comment);
   }
 
   if (loading) {
@@ -412,6 +464,7 @@ function Index() {
           onChange={onPhoto}
         />
       </div>
+      </>
     );
   }
 
