@@ -40,6 +40,7 @@ type Entry = {
   longitude: number | null;
   accuracy: number | null;
   photo_path: string | null;
+  device_label?: string | null;
 };
 
 type Employee = { id: string; name: string; color: string };
@@ -125,7 +126,7 @@ function AdminPage({ ownerId }: { ownerId: string }) {
         supabase.from("employees").select("id,name,color").eq("owner_id", uid).order("name"),
         supabase
           .from("time_entries")
-          .select("id,employee_id,type,occurred_at,latitude,longitude,accuracy,photo_path")
+          .select("id,employee_id,type,occurred_at,latitude,longitude,accuracy,photo_path,device_label")
           .eq("owner_id", uid)
           .order("occurred_at", { ascending: false })
           .limit(1000),
@@ -918,6 +919,11 @@ function AdminPage({ ownerId }: { ownerId: string }) {
                       )
                     ) : (
                       <p className="text-xs text-muted-foreground">Sin foto</p>
+                    )}
+                    {e.device_label && e.device_label.includes("salida anticipada") && (
+                      <p className="text-xs rounded-md bg-amber-50 border border-amber-200 text-amber-900 px-2 py-1.5">
+                        💬 {e.device_label.split("·").slice(1).join("·").trim() || e.device_label}
+                      </p>
                     )}
 
                     {hasLoc ? (
