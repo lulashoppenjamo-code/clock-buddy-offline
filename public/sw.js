@@ -1,8 +1,30 @@
-// Service Worker — habilita uso offline del reloj checador.
-const VERSION = "v3";
+// Service Worker — Reloj Checador offline-first (estable)
+const VERSION = "v5";
 const SHELL_CACHE = `checador-shell-${VERSION}`;
 const ASSET_CACHE = `checador-assets-${VERSION}`;
-const SHELL_URLS = ["/", "/empleadas", "/admin", "/auth", "/manifest.json", "/icon-512.png"];
+const MISC_CACHE = `checador-misc-${VERSION}`;
+
+// Rutas HTML críticas (se calientan en install + en runtime)
+const SHELL_URLS = [
+  "/",
+  "/empleadas",
+  "/admin",
+  "/auth",
+  "/ventas",
+  "/limpieza",
+  "/faltantes",
+  "/insumos",
+  "/vacaciones",
+  "/descansos",
+  "/pagos",
+  "/clientes",
+  "/ranking",
+  "/meta-mensual",
+  "/perfumes",
+  "/manifest.json",
+  "/icon-512.png",
+  "/offline.html",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -23,15 +45,18 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      const keep = new Set([SHELL_CACHE, ASSET_CACHE, MISC_CACHE]);
       const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((k) => k !== SHELL_CACHE && k !== ASSET_CACHE)
-          .map((k) => caches.delete(k)),
-      );
+      await Promise.all(keys.filter((k) => !keep.has(k)).map((k) => caches.delete(k)));
       await self.clients.claim();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const c of clients) c.postMessage({ type: "SW_ACTIVATED" });
     })(),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -40,45 +65,56 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // No interceptar llamadas a Supabase u otras APIs externas.
+  // No interceptar APIs externas (Supabase, etc.)
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
 
-  // Navegaciones: network-first con fallback al shell cacheado.
+  // Navegaciones: network-first → caché de página → / → offline.html
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const fresh = await fetch(req);
-          const cache = await caches.open(SHELL_CACHE);
-          cache.put(req, fresh.clone()).catch(() => {});
+          if (fresh && fresh.ok) {
+            const cache = await caches.open(SHELL_CACHE);
+            cache.put(req, fresh.clone()).catch(() => {});
+            // También guardar por pathname limpio
+            cache.put(url.pathname, fresh.clone()).catch(() => {});
+          }
           return fresh;
         } catch {
           const cache = await caches.open(SHELL_CACHE);
           const cached =
             (await cache.match(req)) ||
+            (await cache.match(url.pathname)) ||
             (await cache.match("/")) ||
-            (await cache.match("/index.html"));
+            (await cache.match("/offline.html"));
           if (cached) return cached;
-          return new Response("Sin conexión", { status: 503, statusText: "Offline" });
+          return new Response(
+            "<!DOCTYPE html><html lang=es><body style='font-family:sans-serif;text-align:center;padding:2rem'><h1>Sin conexión</h1><p>Abrí la app una vez con internet.</p><button onclick='location.reload()'>Reintentar</button></body></html>",
+            { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+          );
         }
       })(),
     );
     return;
   }
 
-  // Assets estáticos: cache-first.
+  // JS / CSS / fuentes / imágenes: cache-first
   if (
     url.pathname.startsWith("/assets/") ||
-    /\.(js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico|json)$/.test(url.pathname)
+    /\.(js|css|mjs|woff2?|ttf|png|jpg|jpeg|svg|webp|ico|json|webmanifest)$/.test(url.pathname)
   ) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(ASSET_CACHE);
         const cached = await cache.match(req);
         if (cached) {
+          // Actualizar en segundo plano si hay red
           fetch(req)
-            .then((res) => res.ok && cache.put(req, res.clone()))
+            .then((res) => {
+              if (res.ok) cache.put(req, res.clone()).catch(() => {});
+            })
             .catch(() => {});
           return cached;
         }
@@ -91,5 +127,24 @@ self.addEventListener("fetch", (event) => {
         }
       })(),
     );
+    return;
   }
+
+  // Resto GET mismo origen: stale-while-revalidate
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(MISC_CACHE);
+      const cached = await cache.match(req);
+      const network = fetch(req)
+        .then((res) => {
+          if (res.ok) cache.put(req, res.clone()).catch(() => {});
+          return res;
+        })
+        .catch(() => null);
+      if (cached) return cached;
+      const res = await network;
+      if (res) return res;
+      return new Response("", { status: 504 });
+    })(),
+  );
 });
