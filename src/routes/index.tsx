@@ -1,4 +1,3 @@
-
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,7 +179,7 @@ function Index() {
         } catch {}
       }
       if (list?.length) {
-        return scheduleIndex(list).get(`${empId}|${new Date().getDay()}`);
+        return scheduleIndex(list).get(`\( {empId}| \){new Date().getDay()}`);
       }
     } catch {}
     return undefined;
@@ -219,7 +218,7 @@ function Index() {
         photo_blob: photoBlob,
         photo_path: null,
         device_label: earlyComment
-          ? `${deviceLabel()} · salida anticipada (${earlyComment})`
+          ? `\( {deviceLabel()} · salida anticipada ( \){earlyComment})`
           : deviceLabel(),
       };
       await queueEntry(entry);
@@ -239,7 +238,7 @@ function Index() {
                 } catch {}
               }
               if (list?.length) {
-                schedule = scheduleIndex(list).get(`${selected.id}|${when.getDay()}`);
+                schedule = scheduleIndex(list).get(`\( {selected.id}| \){when.getDay()}`);
               }
             } catch {}
           }
@@ -336,7 +335,17 @@ function Index() {
     setEarlyOutOpen(false);
     pendingEarlyTypeRef.current = null;
     pendingPhotoRef.current = null;
+    setEarlyOutInfo(null);
     await doCheck(action, blob, comment);
+  }
+
+  function cancelEarlyOut() {
+    setEarlyOutOpen(false);
+    pendingEarlyTypeRef.current = null;
+    pendingPhotoRef.current = null;
+    setEarlyOutInfo(null);
+    setEarlyOutComment("");
+    toast.message("Salida cancelada. Puedes intentarlo de nuevo.");
   }
 
   if (loading) {
@@ -391,10 +400,23 @@ function Index() {
             <p className="text-slate-500 text-sm">Hola</p>
             <h2 className="text-4xl font-bold text-slate-800">{selected.name}</h2>
             <p className="text-slate-600 mt-2 tabular-nums text-lg">
-              {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }) : "--:--"}
+              {now
+                ? now.toLocaleTimeString("es-MX", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: true,
+                  })
+                : "--:--"}
             </p>
             <p className="text-slate-500 text-xs">
-              {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
+              {now
+                ? now.toLocaleDateString("es-MX", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })
+                : ""}
             </p>
           </div>
 
@@ -455,6 +477,50 @@ function Index() {
           className="hidden"
           onChange={onPhoto}
         />
+
+        {/* Modal salida anticipada — arregla el bloqueo al cerrar el día */}
+        {earlyOutOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Salida anticipada</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  {earlyOutInfo
+                    ? `Faltan ${earlyOutInfo.earlyMinutes} min para las ${earlyOutInfo.endLabel}. Escribe el motivo para registrar la salida.`
+                    : "Escribe el motivo de la salida anticipada."}
+                </p>
+              </div>
+              <textarea
+                className="w-full min-h-[88px] rounded-xl border border-pink-200 bg-pink-50/40 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                placeholder="Ej. cita médica, permiso de la jefa…"
+                value={earlyOutComment}
+                onChange={(e) => setEarlyOutComment(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  className="flex-1 text-slate-600"
+                  onClick={cancelEarlyOut}
+                  disabled={busy === "clock_out"}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-pink-400 to-rose-300 text-white hover:from-pink-500 hover:to-rose-400"
+                  onClick={confirmEarlyOut}
+                  disabled={busy === "clock_out"}
+                >
+                  {busy === "clock_out" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Registrar salida"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -466,10 +532,14 @@ function Index() {
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
         <div className="text-center">
           <p className="text-5xl font-bold tabular-nums tracking-tight text-slate-700">
-            {now ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true }) : "--:--"}
+            {now
+              ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true })
+              : "--:--"}
           </p>
           <p className="text-slate-500 text-sm capitalize">
-            {now ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" }) : ""}
+            {now
+              ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
+              : ""}
           </p>
         </div>
 
