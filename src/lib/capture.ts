@@ -19,14 +19,14 @@ export function getPosition(): Promise<GeoResult> {
       resolve(r);
     };
 
-    // First try: high accuracy with longer timeout
+    // Intento rápido: permite caché reciente (2 min) y timeout corto
     navigator.geolocation.getCurrentPosition(
       (p) => finish({ ok: true, position: p }),
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           return finish({ ok: false, reason: "denied" });
         }
-        // Fallback: low accuracy, allow cached
+        // Fallback: un poco más de tiempo, sin forzar alta precisión
         navigator.geolocation.getCurrentPosition(
           (p) => finish({ ok: true, position: p }),
           (err2) => {
@@ -34,10 +34,12 @@ export function getPosition(): Promise<GeoResult> {
             else if (err2.code === err2.TIMEOUT) finish({ ok: false, reason: "timeout" });
             else finish({ ok: false, reason: "unavailable" });
           },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+          { enableHighAccuracy: false, timeout: 4000, maximumAge: 120000 },
         );
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      // Antes: 15s + maximumAge 0 (siempre GPS fresco) → muy lento
+      // Ahora: 5s + caché de hasta 2 min → registra casi al instante
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 120000 },
     );
   });
 }
@@ -59,7 +61,7 @@ export function geoReasonMessage(reason: Exclude<GeoResult, { ok: true }>["reaso
 }
 
 export function captureFromFileInput(file: File): Promise<Blob> {
-  // Downscale to ~720px max dimension and re-encode as JPEG for size.
+  // Downscale to \~720px max dimension and re-encode as JPEG for size.
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
