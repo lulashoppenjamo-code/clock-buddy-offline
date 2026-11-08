@@ -709,3 +709,9 @@ function labelFor(t: EntryType) {
       return "Fin de descanso";
   }
 }
+
+<Link to="/capacitacion">
+  <Button size="sm" className="bg-pink-700 hover:bg-pink-800 text-white">
+    📚 Capacitación Lula Shop
+  </Button>
+</Link>
