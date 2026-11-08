@@ -1,3 +1,4 @@
+import { CapacitacionAdmin } from "@/components/CapacitacionAdmin";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -562,10 +563,12 @@ function AdminPage({ ownerId }: { ownerId: string }) {
               📈 Ventas Agregadas
             </Button>
           </Link>
-          <Button variant="outline" className="w-full" onClick={() => setChangeOpen(true)}>
+                    <Button variant="outline" className="w-full" onClick={() => setChangeOpen(true)}>
             <KeyRound className="h-4 w-4" /> Cambiar código de administrador
           </Button>
         </Card>
+
+        <CapacitacionAdmin ownerId={ownerId} />
 
         <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
           <DialogContent className="max-w-sm">
