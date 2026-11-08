@@ -2,17 +2,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  hasAdminCode,
-  verifyAdminCode,
-  isUnlocked,
-  markUnlocked,
-  lock,
-} from "@/lib/admin-lock";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,13 +16,10 @@ import {
   ArrowLeft,
   BookOpen,
   FileText,
-  Upload,
-  Trash2,
   Loader2,
   RefreshCw,
   X,
   ShieldCheck,
-  Lock,
 } from "lucide-react";
 
 export const Route = createFileRoute("/capacitacion")({
@@ -50,14 +38,12 @@ const CATEGORIES = [
   { id: "ventas", name: "Ventas y atención al cliente", icon: "💗" },
   { id: "procedimientos", name: "Procedimientos internos", icon: "📋" },
   { id: "pixel-perfect", name: "Manual de Pixel Perfect", icon: "🖥️" },
-] as const;
+];
 
 type TrainingFile = {
   name: string;
   path: string;
   category: string;
-  created_at?: string;
-  metadata?: { size?: number };
 };
 
 function CapacitacionPage() {
@@ -66,24 +52,15 @@ function CapacitacionPage() {
   const [files, setFiles] = useState<TrainingFile[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const [category, setCategory] = useState(() => {
-    return localStorage.getItem(LAST_CATEGORY_KEY) || "todas";
-  });
+  const [category, setCategory] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem(LAST_CATEGORY_KEY) || "todas"
+      : "todas"
+  );
 
   const [selected, setSelected] = useState<TrainingFile | null>(null);
   const [pdfUrl, setPdfUrl] = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
-
-  const [uploadCategory, setUploadCategory] = useState("unas");
-  const [uploading, setUploading] = useState(false);
-  const [title, setTitle] = useState("");
-
-  const [showAdminAccess, setShowAdminAccess] = useState(false);
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
-  const [adminCode, setAdminCode] = useState("");
-  const [adminBusy, setAdminBusy] = useState(false);
-
-  const fileInput = useRef<HTMLInputElement>(null);
   const restored = useRef(false);
 
   useEffect(() => {
@@ -96,7 +73,6 @@ function CapacitacionPage() {
         setOwnerId(null);
       } else {
         setOwnerId(data.session.user.id);
-        setAdminUnlocked(isUnlocked());
       }
 
       setChecking(false);
@@ -135,26 +111,20 @@ function CapacitacionPage() {
             name: item.name,
             path: `${uid}/${cat.id}/${item.name}`,
             category: cat.id,
-            created_at: item.created_at ?? undefined,
-            metadata: item.metadata ?? undefined,
           });
         }
       }
 
       setFiles(all);
     } catch (error: any) {
-      toast.error(
-        error?.message ?? "No se pudieron cargar los documentos",
-      );
+      toast.error(error?.message ?? "No se pudieron cargar los documentos");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (ownerId) {
-      loadFiles(ownerId);
-    }
+    if (ownerId) loadFiles(ownerId);
   }, [ownerId]);
 
   async function openPdf(file: TrainingFile) {
@@ -173,9 +143,7 @@ function CapacitacionPage() {
     setPdfLoading(false);
 
     if (error || !data?.signedUrl) {
-      toast.error(
-        "No se pudo abrir el documento. Comprueba tu conexión.",
-      );
+      toast.error("No se pudo abrir el documento. Comprueba tu conexión.");
       setSelected(null);
       return;
     }
@@ -183,7 +151,6 @@ function CapacitacionPage() {
     setPdfUrl(data.signedUrl);
   }
 
-  // Recuperar el último documento consultado al volver a entrar.
   useEffect(() => {
     if (!files.length || restored.current) return;
 
@@ -200,155 +167,13 @@ function CapacitacionPage() {
     }
   }, [files]);
 
-  async function unlockAdmin() {
-    if (!ownerId) return;
-
-    setAdminBusy(true);
-
-    const exists = await hasAdminCode(ownerId);
-
-    if (!exists) {
-      setAdminBusy(false);
-      toast.error(
-        "Primero configura el código de administradora desde Reportes.",
-      );
-      return;
-    }
-
-    const valid = await verifyAdminCode(ownerId, adminCode);
-
-    setAdminBusy(false);
-
-    if (!valid) {
-      setAdminCode("");
-      toast.error("Código incorrecto");
-      return;
-    }
-
-    markUnlocked();
-    setAdminUnlocked(true);
-    setShowAdminAccess(false);
-    setAdminCode("");
-
-    toast.success("Administración desbloqueada");
-  }
-
-  function lockAdmin() {
-    lock();
-    setAdminUnlocked(false);
-    setShowAdminAccess(false);
-    toast.success("Administración bloqueada");
-  }
-
-  function canAdminister() {
-    if (!isUnlocked()) {
-      setAdminUnlocked(false);
-      toast.error("El acceso de administración expiró. Ingresa tu código.");
-      setShowAdminAccess(true);
-      return false;
-    }
-
-    return true;
-  }
-
-  async function uploadPdf(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file || !ownerId) return;
-    if (!canAdminister()) return;
-
-    if (
-      file.type !== "application/pdf" &&
-      !file.name.toLowerCase().endsWith(".pdf")
-    ) {
-      toast.error("Solo puedes subir archivos PDF");
-      return;
-    }
-
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error("El archivo supera el límite de 20 MB");
-      return;
-    }
-
-    const cleanTitle =
-      title.trim() || file.name.replace(/\.pdf$/i, "");
-
-    const safeName = cleanTitle
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 70);
-
-    const fileName = `${Date.now()}-${safeName || "documento"}.pdf`;
-    const path = `${ownerId}/${uploadCategory}/${fileName}`;
-
-    setUploading(true);
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-
-    setUploading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    setTitle("");
-    toast.success("Documento agregado a la biblioteca");
-
-    await loadFiles(ownerId);
-  }
-
-  async function deletePdf(file: TrainingFile) {
-    if (!canAdminister()) return;
-
-    const confirmed = window.confirm(
-      `¿Eliminar "${file.name
-        .replace(/^\d+-/, "")
-        .replace(/\.pdf$/i, "")}" de la biblioteca?`,
-    );
-
-    if (!confirmed) return;
-
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .remove([file.path]);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    if (selected?.path === file.path) {
-      setSelected(null);
-      setPdfUrl("");
-      localStorage.removeItem(LAST_FILE_KEY);
-    }
-
-    toast.success("Documento eliminado");
-
-    if (ownerId) {
-      await loadFiles(ownerId);
-    }
-  }
-
   function closePdf() {
     setSelected(null);
     setPdfUrl("");
   }
 
   const visibleFiles = files.filter(
-    (file) =>
-      category === "todas" || file.category === category,
+    (file) => category === "todas" || file.category === category
   );
 
   if (checking) {
@@ -362,16 +187,13 @@ function CapacitacionPage() {
   if (!ownerId) {
     return (
       <div className="min-h-screen grid place-items-center bg-pink-50 p-5">
-        <Card className="max-w-sm p-5 text-center space-y-3">
-          <h1 className="font-semibold text-lg">
-            Capacitación Lula Shop
-          </h1>
+        <Card className="max-w-sm space-y-3 p-5 text-center">
+          <h1 className="text-lg font-semibold">Capacitación Lula Shop</h1>
           <p className="text-sm text-muted-foreground">
-            No se encontró una sesión activa del sistema.
-            Comprueba que la tablet tenga iniciada la sesión
-            de Supabase.
+            No se encontró una sesión activa del sistema. Solicita apoyo a la
+            administración de Lula Shop.
           </p>
-          <Link to="/" className="block text-sm text-pink-600">
+          <Link to="/" className="text-sm text-pink-600">
             Volver
           </Link>
         </Card>
@@ -382,10 +204,7 @@ function CapacitacionPage() {
   return (
     <div className="min-h-screen bg-pink-50 text-slate-800">
       <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-white px-4 py-3">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-sm text-slate-600"
-        >
+        <Link to="/" className="flex items-center gap-2 text-sm text-slate-600">
           <ArrowLeft className="h-4 w-4" />
           Volver
         </Link>
@@ -401,11 +220,7 @@ function CapacitacionPage() {
           className="rounded-lg p-2 text-slate-500 hover:bg-pink-50"
           aria-label="Actualizar documentos"
         >
-          <RefreshCw
-            className={`h-4 w-4 ${
-              loading ? "animate-spin" : ""
-            }`}
-          />
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </header>
 
@@ -420,35 +235,26 @@ function CapacitacionPage() {
           </h1>
 
           <p className="mt-2 text-sm text-white/90">
-            Consulta los manuales y materiales para desarrollar
-            tus conocimientos y habilidades.
+            Consulta los manuales y materiales para desarrollar tus
+            conocimientos y habilidades.
           </p>
         </section>
 
-        <section className="space-y-2">
+        <section className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-semibold">
-              Material de capacitación
-            </h2>
-
+            <h2 className="font-semibold">Material de capacitación</h2>
             <span className="text-xs text-muted-foreground">
               {visibleFiles.length} documento(s)
             </span>
           </div>
 
-          <Select
-            value={category}
-            onValueChange={setCategory}
-          >
+          <Select value={category} onValueChange={setCategory}>
             <SelectTrigger className="w-full bg-white">
               <SelectValue placeholder="Selecciona una categoría" />
             </SelectTrigger>
 
             <SelectContent>
-              <SelectItem value="todas">
-                Todas las categorías
-              </SelectItem>
-
+              <SelectItem value="todas">Todas las categorías</SelectItem>
               {CATEGORIES.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.icon} {cat.name}
@@ -464,33 +270,22 @@ function CapacitacionPage() {
           ) : visibleFiles.length === 0 ? (
             <Card className="p-7 text-center">
               <BookOpen className="mx-auto h-9 w-9 text-pink-300" />
-
-              <p className="mt-3 font-medium">
-                Todavía no hay documentos
-              </p>
-
+              <p className="mt-3 font-medium">Todavía no hay documentos</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Los materiales que agregue la administración
-                aparecerán aquí.
+                Los materiales que publique la administración aparecerán aquí.
               </p>
             </Card>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {visibleFiles.map((file) => {
-                const cat = CATEGORIES.find(
-                  (item) => item.id === file.category,
-                );
-
+                const cat = CATEGORIES.find((item) => item.id === file.category);
                 const displayName = file.name
                   .replace(/^\d+-/, "")
                   .replace(/\.pdf$/i, "")
                   .replace(/-/g, " ");
 
                 return (
-                  <Card
-                    key={file.path}
-                    className="flex items-center gap-3 p-3"
-                  >
+                  <Card key={file.path} className="flex items-center gap-3 p-3">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-pink-50 text-pink-600">
                       <FileText className="h-5 w-5" />
                     </div>
@@ -503,15 +298,12 @@ function CapacitacionPage() {
                       <span className="block truncate text-sm font-semibold capitalize">
                         {displayName}
                       </span>
-
                       <span className="block truncate text-xs text-muted-foreground">
                         {cat?.icon} {cat?.name ?? "Material"}
                       </span>
                     </button>
 
-                    <span className="text-xs text-pink-600">
-                      Leer
-                    </span>
+                    <span className="text-xs text-pink-600">Leer</span>
                   </Card>
                 );
               })}
@@ -519,235 +311,24 @@ function CapacitacionPage() {
           )}
         </section>
 
-        {/* Administración: solo aparece con el código existente */}
-        {adminUnlocked && isUnlocked() && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-pink-600" />
-                <h2 className="font-semibold">
-                  Administrar biblioteca
-                </h2>
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={lockAdmin}
-              >
-                <Lock className="mr-1 h-4 w-4" />
-                Bloquear
-              </Button>
-            </div>
-
-            <Card className="space-y-3 p-4">
-              <p className="text-sm text-muted-foreground">
-                Agrega manuales y documentos PDF para todas
-                las colaboradoras.
-              </p>
-
-              <div className="space-y-1.5">
-                <Label>Categoría</Label>
-
-                <Select
-                  value={uploadCategory}
-                  onValueChange={setUploadCategory}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>
-                  Nombre del documento (opcional)
-                </Label>
-
-                <Input
-                  value={title}
-                  onChange={(event) =>
-                    setTitle(event.target.value)
-                  }
-                  placeholder="Ej. Aplicación correcta de uñas acrílicas"
-                  maxLength={70}
-                />
-              </div>
-
-              <input
-                ref={fileInput}
-                type="file"
-                accept="application/pdf,.pdf"
-                className="hidden"
-                onChange={uploadPdf}
-              />
-
-              <Button
-                className="w-full"
-                disabled={uploading}
-                onClick={() => {
-                  if (canAdminister()) {
-                    fileInput.current?.click();
-                  }
-                }}
-              >
-                {uploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-
-                {uploading
-                  ? "Subiendo documento..."
-                  : "Seleccionar y subir PDF"}
-              </Button>
-
-              <p className="text-xs text-muted-foreground">
-                Formato PDF. Tamaño máximo: 20 MB por archivo.
-              </p>
-            </Card>
-
-            {files.length > 0 && (
-              <Card className="divide-y p-3">
-                <h3 className="pb-2 text-sm font-semibold">
-                  Documentos publicados
-                </h3>
-
-                {files.map((file) => (
-                  <div
-                    key={file.path}
-                    className="flex items-center gap-2 py-2"
-                  >
-                    <FileText className="h-4 w-4 shrink-0 text-pink-600" />
-
-                    <span className="min-w-0 flex-1 truncate text-sm">
-                      {file.name
-                        .replace(/^\d+-/, "")
-                        .replace(/\.pdf$/i, "")
-                        .replace(/-/g, " ")}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => deletePdf(file)}
-                      className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                      aria-label="Eliminar documento"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </Card>
-            )}
-          </section>
-        )}
-
-        {/* Acceso discreto a administración */}
-        {!adminUnlocked && (
-          <section className="pt-1 text-center">
-            {!showAdminAccess ? (
-              <button
-                type="button"
-                onClick={() => setShowAdminAccess(true)}
-                className="text-[11px] text-slate-400 hover:text-pink-600"
-              >
-                Administración
-              </button>
-            ) : (
-              <Card className="mx-auto max-w-sm space-y-3 p-4 text-left">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold">
-                    Acceso de administración
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAdminAccess(false);
-                      setAdminCode("");
-                    }}
-                    aria-label="Cerrar"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Ingresa el mismo código que configuraste
-                  en Reportes.
-                </p>
-
-                <Label htmlFor="training-admin-code">
-                  Código de administradora
-                </Label>
-
-                <Input
-                  id="training-admin-code"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={8}
-                  value={adminCode}
-                  onChange={(event) =>
-                    setAdminCode(
-                      event.target.value.replace(/\D/g, ""),
-                    )
-                  }
-                  placeholder="Ingresa tu código"
-                />
-
-                <Button
-                  className="w-full"
-                  disabled={adminBusy || adminCode.length < 4}
-                  onClick={unlockAdmin}
-                >
-                  {adminBusy ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Lock className="mr-2 h-4 w-4" />
-                  )}
-                  Desbloquear administración
-                </Button>
-
-                <Link
-                  to="/admin"
-                  className="block text-center text-xs text-pink-600"
-                >
-                  Configurar código desde Reportes
-                </Link>
-              </Card>
-            )}
-          </section>
-        )}
-
         <section className="rounded-xl border border-rose-200 bg-white p-4 text-xs leading-relaxed text-slate-600">
           <div className="mb-2 flex items-center gap-2 font-bold text-rose-700">
             <ShieldCheck className="h-4 w-4" />
             AVISO DE PROPIEDAD Y CONFIDENCIALIDAD
           </div>
 
-          Toda la información, documentos, manuales,
-          procedimientos y materiales de capacitación disponibles
-          en esta sección son propiedad de Lula Shop o se utilizan
-          con autorización de sus respectivos titulares.
+          Toda la información, documentos, manuales, procedimientos y materiales
+          de capacitación disponibles en esta sección son propiedad de Lula Shop
+          o se utilizan con autorización de sus respectivos titulares.
 
-          Queda prohibido fotografiar, capturar pantalla, copiar,
-          reproducir, descargar, extraer, compartir, distribuir
-          o divulgar, total o parcialmente, cualquier material
-          interno o confidencial sin autorización expresa de la
-          administración.
+          Queda prohibido fotografiar, capturar pantalla, copiar, reproducir,
+          descargar, extraer, compartir, distribuir o divulgar, total o
+          parcialmente, cualquier material interno o confidencial sin
+          autorización expresa de la administración.
 
-          El acceso se concede exclusivamente para fines de
-          capacitación del personal. Cualquier uso, sustracción
-          o divulgación no autorizada podrá dar lugar a medidas
-          laborales y a las acciones legales que correspondan
+          El acceso se concede exclusivamente para fines de capacitación del
+          personal. Cualquier uso, sustracción o divulgación no autorizada podrá
+          dar lugar a medidas laborales y a las acciones legales que correspondan
           conforme a la legislación aplicable.
 
           <p className="mt-2 font-semibold text-slate-700">
@@ -766,7 +347,6 @@ function CapacitacionPage() {
                   .replace(/\.pdf$/i, "")
                   .replace(/-/g, " ")}
               </p>
-
               <p className="text-xs text-slate-500">
                 Documento de capacitación
               </p>
