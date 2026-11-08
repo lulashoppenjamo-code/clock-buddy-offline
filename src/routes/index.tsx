@@ -179,7 +179,7 @@ function Index() {
         } catch {}
       }
       if (list?.length) {
-        return scheduleIndex(list).get(`\( {empId}| \){new Date().getDay()}`);
+        return scheduleIndex(list).get(`\\( {empId}| \\){new Date().getDay()}`);
       }
     } catch {}
     return undefined;
@@ -218,7 +218,7 @@ function Index() {
         photo_blob: photoBlob,
         photo_path: null,
         device_label: earlyComment
-          ? `\( {deviceLabel()} · salida anticipada ( \){earlyComment})`
+          ? `\\( {deviceLabel()} · salida anticipada ( \\){earlyComment})`
           : deviceLabel(),
       };
       await queueEntry(entry);
@@ -238,7 +238,7 @@ function Index() {
                 } catch {}
               }
               if (list?.length) {
-                schedule = scheduleIndex(list).get(`\( {selected.id}| \){when.getDay()}`);
+                schedule = scheduleIndex(list).get(`\\( {selected.id}| \\){when.getDay()}`);
               }
             } catch {}
           }
@@ -631,6 +631,11 @@ function Index() {
         <Link to="/admin">
           <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-pink-100 hover:text-slate-800">
             Reportes
+          </Button>
+        </Link>
+        <Link to="/capacitacion">
+          <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
+            📚 Capacitación Lula Shop
           </Button>
         </Link>
       </div>
