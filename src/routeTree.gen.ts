@@ -9,127 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VentasRouteImport } from './routes/ventas'
-import { Route as VacacionesRouteImport } from './routes/vacaciones'
-import { Route as RankingRouteImport } from './routes/ranking'
-import { Route as PerfumesRouteImport } from './routes/perfumes'
-import { Route as PagosRouteImport } from './routes/pagos'
-import { Route as MetaMensualRouteImport } from './routes/meta-mensual'
-import { Route as LimpiezaRouteImport } from './routes/limpieza'
-import { Route as InsumosRouteImport } from './routes/insumos'
-import { Route as FaltantesRouteImport } from './routes/faltantes'
-import { Route as EmpleadasRouteImport } from './routes/empleadas'
-import { Route as DescansosRouteImport } from './routes/descansos'
-import { Route as ClientesRouteImport } from './routes/clientes'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminVentasRouteImport } from './routes/admin-ventas'
-import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
-import { Route as AdminPagosRouteImport } from './routes/admin-pagos'
-import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
-import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
-import { Route as AdminFaltantesRouteImport } from './routes/admin-faltantes'
-import { Route as AdminDescansosRouteImport } from './routes/admin-descansos'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminDescansosRouteImport } from './routes/admin-descansos'
+import { Route as AdminFaltantesRouteImport } from './routes/admin-faltantes'
+import { Route as AdminInsumosRouteImport } from './routes/admin-insumos'
+import { Route as AdminLimpiezaRouteImport } from './routes/admin-limpieza'
+import { Route as AdminPagosRouteImport } from './routes/admin-pagos'
+import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
+import { Route as AdminVentasRouteImport } from './routes/admin-ventas'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as DescansosRouteImport } from './routes/descansos'
+import { Route as EmpleadasRouteImport } from './routes/empleadas'
+import { Route as FaltantesRouteImport } from './routes/faltantes'
+import { Route as InsumosRouteImport } from './routes/insumos'
+import { Route as LimpiezaRouteImport } from './routes/limpieza'
+import { Route as MetaMensualRouteImport } from './routes/meta-mensual'
+import { Route as PagosRouteImport } from './routes/pagos'
+import { Route as PerfumesRouteImport } from './routes/perfumes'
+import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as VacacionesRouteImport } from './routes/vacaciones'
+import { Route as VentasRouteImport } from './routes/ventas'
 
-const VentasRoute = VentasRouteImport.update({
-  id: '/ventas',
-  path: '/ventas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const VacacionesRoute = VacacionesRouteImport.update({
-  id: '/vacaciones',
-  path: '/vacaciones',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RankingRoute = RankingRouteImport.update({
-  id: '/ranking',
-  path: '/ranking',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PerfumesRoute = PerfumesRouteImport.update({
-  id: '/perfumes',
-  path: '/perfumes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PagosRoute = PagosRouteImport.update({
-  id: '/pagos',
-  path: '/pagos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MetaMensualRoute = MetaMensualRouteImport.update({
-  id: '/meta-mensual',
-  path: '/meta-mensual',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LimpiezaRoute = LimpiezaRouteImport.update({
-  id: '/limpieza',
-  path: '/limpieza',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InsumosRoute = InsumosRouteImport.update({
-  id: '/insumos',
-  path: '/insumos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FaltantesRoute = FaltantesRouteImport.update({
-  id: '/faltantes',
-  path: '/faltantes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmpleadasRoute = EmpleadasRouteImport.update({
-  id: '/empleadas',
-  path: '/empleadas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DescansosRoute = DescansosRouteImport.update({
-  id: '/descansos',
-  path: '/descansos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientesRoute = ClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminVentasRoute = AdminVentasRouteImport.update({
-  id: '/admin-ventas',
-  path: '/admin-ventas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminVacacionesRoute = AdminVacacionesRouteImport.update({
-  id: '/admin-vacaciones',
-  path: '/admin-vacaciones',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminPagosRoute = AdminPagosRouteImport.update({
-  id: '/admin-pagos',
-  path: '/admin-pagos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
-  id: '/admin-limpieza',
-  path: '/admin-limpieza',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminInsumosRoute = AdminInsumosRouteImport.update({
-  id: '/admin-insumos',
-  path: '/admin-insumos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminFaltantesRoute = AdminFaltantesRouteImport.update({
-  id: '/admin-faltantes',
-  path: '/admin-faltantes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminDescansosRoute = AdminDescansosRouteImport.update({
-  id: '/admin-descansos',
-  path: '/admin-descansos',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -137,9 +42,104 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminDescansosRoute = AdminDescansosRouteImport.update({
+  id: '/admin-descansos',
+  path: '/admin-descansos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminFaltantesRoute = AdminFaltantesRouteImport.update({
+  id: '/admin-faltantes',
+  path: '/admin-faltantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminInsumosRoute = AdminInsumosRouteImport.update({
+  id: '/admin-insumos',
+  path: '/admin-insumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLimpiezaRoute = AdminLimpiezaRouteImport.update({
+  id: '/admin-limpieza',
+  path: '/admin-limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPagosRoute = AdminPagosRouteImport.update({
+  id: '/admin-pagos',
+  path: '/admin-pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVacacionesRoute = AdminVacacionesRouteImport.update({
+  id: '/admin-vacaciones',
+  path: '/admin-vacaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVentasRoute = AdminVentasRouteImport.update({
+  id: '/admin-ventas',
+  path: '/admin-ventas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientesRoute = ClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DescansosRoute = DescansosRouteImport.update({
+  id: '/descansos',
+  path: '/descansos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpleadasRoute = EmpleadasRouteImport.update({
+  id: '/empleadas',
+  path: '/empleadas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaltantesRoute = FaltantesRouteImport.update({
+  id: '/faltantes',
+  path: '/faltantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsumosRoute = InsumosRouteImport.update({
+  id: '/insumos',
+  path: '/insumos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LimpiezaRoute = LimpiezaRouteImport.update({
+  id: '/limpieza',
+  path: '/limpieza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetaMensualRoute = MetaMensualRouteImport.update({
+  id: '/meta-mensual',
+  path: '/meta-mensual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagosRoute = PagosRouteImport.update({
+  id: '/pagos',
+  path: '/pagos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfumesRoute = PerfumesRouteImport.update({
+  id: '/perfumes',
+  path: '/perfumes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VacacionesRoute = VacacionesRouteImport.update({
+  id: '/vacaciones',
+  path: '/vacaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VentasRoute = VentasRouteImport.update({
+  id: '/ventas',
+  path: '/ventas',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -318,144 +318,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/ventas': {
-      id: '/ventas'
-      path: '/ventas'
-      fullPath: '/ventas'
-      preLoaderRoute: typeof VentasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/vacaciones': {
-      id: '/vacaciones'
-      path: '/vacaciones'
-      fullPath: '/vacaciones'
-      preLoaderRoute: typeof VacacionesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ranking': {
-      id: '/ranking'
-      path: '/ranking'
-      fullPath: '/ranking'
-      preLoaderRoute: typeof RankingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/perfumes': {
-      id: '/perfumes'
-      path: '/perfumes'
-      fullPath: '/perfumes'
-      preLoaderRoute: typeof PerfumesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pagos': {
-      id: '/pagos'
-      path: '/pagos'
-      fullPath: '/pagos'
-      preLoaderRoute: typeof PagosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meta-mensual': {
-      id: '/meta-mensual'
-      path: '/meta-mensual'
-      fullPath: '/meta-mensual'
-      preLoaderRoute: typeof MetaMensualRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/limpieza': {
-      id: '/limpieza'
-      path: '/limpieza'
-      fullPath: '/limpieza'
-      preLoaderRoute: typeof LimpiezaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/insumos': {
-      id: '/insumos'
-      path: '/insumos'
-      fullPath: '/insumos'
-      preLoaderRoute: typeof InsumosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/faltantes': {
-      id: '/faltantes'
-      path: '/faltantes'
-      fullPath: '/faltantes'
-      preLoaderRoute: typeof FaltantesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/empleadas': {
-      id: '/empleadas'
-      path: '/empleadas'
-      fullPath: '/empleadas'
-      preLoaderRoute: typeof EmpleadasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/descansos': {
-      id: '/descansos'
-      path: '/descansos'
-      fullPath: '/descansos'
-      preLoaderRoute: typeof DescansosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clientes': {
-      id: '/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof ClientesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-ventas': {
-      id: '/admin-ventas'
-      path: '/admin-ventas'
-      fullPath: '/admin-ventas'
-      preLoaderRoute: typeof AdminVentasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-vacaciones': {
-      id: '/admin-vacaciones'
-      path: '/admin-vacaciones'
-      fullPath: '/admin-vacaciones'
-      preLoaderRoute: typeof AdminVacacionesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-pagos': {
-      id: '/admin-pagos'
-      path: '/admin-pagos'
-      fullPath: '/admin-pagos'
-      preLoaderRoute: typeof AdminPagosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-limpieza': {
-      id: '/admin-limpieza'
-      path: '/admin-limpieza'
-      fullPath: '/admin-limpieza'
-      preLoaderRoute: typeof AdminLimpiezaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-insumos': {
-      id: '/admin-insumos'
-      path: '/admin-insumos'
-      fullPath: '/admin-insumos'
-      preLoaderRoute: typeof AdminInsumosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-faltantes': {
-      id: '/admin-faltantes'
-      path: '/admin-faltantes'
-      fullPath: '/admin-faltantes'
-      preLoaderRoute: typeof AdminFaltantesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-descansos': {
-      id: '/admin-descansos'
-      path: '/admin-descansos'
-      fullPath: '/admin-descansos'
-      preLoaderRoute: typeof AdminDescansosRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -465,11 +332,144 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin-descansos': {
+      id: '/admin-descansos'
+      path: '/admin-descansos'
+      fullPath: '/admin-descansos'
+      preLoaderRoute: typeof AdminDescansosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-faltantes': {
+      id: '/admin-faltantes'
+      path: '/admin-faltantes'
+      fullPath: '/admin-faltantes'
+      preLoaderRoute: typeof AdminFaltantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-insumos': {
+      id: '/admin-insumos'
+      path: '/admin-insumos'
+      fullPath: '/admin-insumos'
+      preLoaderRoute: typeof AdminInsumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-limpieza': {
+      id: '/admin-limpieza'
+      path: '/admin-limpieza'
+      fullPath: '/admin-limpieza'
+      preLoaderRoute: typeof AdminLimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-pagos': {
+      id: '/admin-pagos'
+      path: '/admin-pagos'
+      fullPath: '/admin-pagos'
+      preLoaderRoute: typeof AdminPagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-vacaciones': {
+      id: '/admin-vacaciones'
+      path: '/admin-vacaciones'
+      fullPath: '/admin-vacaciones'
+      preLoaderRoute: typeof AdminVacacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin-ventas': {
+      id: '/admin-ventas'
+      path: '/admin-ventas'
+      fullPath: '/admin-ventas'
+      preLoaderRoute: typeof AdminVentasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clientes': {
+      id: '/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/descansos': {
+      id: '/descansos'
+      path: '/descansos'
+      fullPath: '/descansos'
+      preLoaderRoute: typeof DescansosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empleadas': {
+      id: '/empleadas'
+      path: '/empleadas'
+      fullPath: '/empleadas'
+      preLoaderRoute: typeof EmpleadasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faltantes': {
+      id: '/faltantes'
+      path: '/faltantes'
+      fullPath: '/faltantes'
+      preLoaderRoute: typeof FaltantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insumos': {
+      id: '/insumos'
+      path: '/insumos'
+      fullPath: '/insumos'
+      preLoaderRoute: typeof InsumosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/limpieza': {
+      id: '/limpieza'
+      path: '/limpieza'
+      fullPath: '/limpieza'
+      preLoaderRoute: typeof LimpiezaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meta-mensual': {
+      id: '/meta-mensual'
+      path: '/meta-mensual'
+      fullPath: '/meta-mensual'
+      preLoaderRoute: typeof MetaMensualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pagos': {
+      id: '/pagos'
+      path: '/pagos'
+      fullPath: '/pagos'
+      preLoaderRoute: typeof PagosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfumes': {
+      id: '/perfumes'
+      path: '/perfumes'
+      fullPath: '/perfumes'
+      preLoaderRoute: typeof PerfumesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vacaciones': {
+      id: '/vacaciones'
+      path: '/vacaciones'
+      fullPath: '/vacaciones'
+      preLoaderRoute: typeof VacacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ventas': {
+      id: '/ventas'
+      path: '/ventas'
+      fullPath: '/ventas'
+      preLoaderRoute: typeof VentasRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
