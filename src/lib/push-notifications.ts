@@ -1,8 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const pushDb = supabase as unknown as SupabaseClient<any>;
+const pushDb = supabase as unknown as SupabaseClient;
 
 const EVENT_TYPES = [
   "clock_in",
@@ -91,9 +90,7 @@ function ensurePushSupport(): void {
   }
 
   if (!("serviceWorker" in navigator)) {
-    throw new Error(
-      "Este navegador no admite Service Workers.",
-    );
+    throw new Error("Este navegador no admite Service Workers.");
   }
 
   if (!("PushManager" in window)) {
@@ -135,7 +132,6 @@ export async function registerPushDevice(): Promise<void> {
   }
 
   const ownerId = await getCurrentOwnerId();
-
   const permission = await Notification.requestPermission();
 
   if (permission !== "granted") {
