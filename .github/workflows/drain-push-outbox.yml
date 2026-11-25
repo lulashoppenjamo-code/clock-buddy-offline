@@ -31,7 +31,7 @@ jobs:
       - name: Instalar Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.62.10
 
       - name: Publicar función nueva
         env:
