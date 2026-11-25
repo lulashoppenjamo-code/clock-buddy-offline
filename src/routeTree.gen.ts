@@ -19,6 +19,7 @@ import { Route as AdminPagosRouteImport } from './routes/admin-pagos'
 import { Route as AdminVacacionesRouteImport } from './routes/admin-vacaciones'
 import { Route as AdminVentasRouteImport } from './routes/admin-ventas'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CapacitacionRouteImport } from './routes/capacitacion'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as DescansosRouteImport } from './routes/descansos'
 import { Route as EmpleadasRouteImport } from './routes/empleadas'
@@ -26,6 +27,7 @@ import { Route as FaltantesRouteImport } from './routes/faltantes'
 import { Route as InsumosRouteImport } from './routes/insumos'
 import { Route as LimpiezaRouteImport } from './routes/limpieza'
 import { Route as MetaMensualRouteImport } from './routes/meta-mensual'
+import { Route as NotificacionesRouteImport } from './routes/notificaciones'
 import { Route as PagosRouteImport } from './routes/pagos'
 import { Route as PerfumesRouteImport } from './routes/perfumes'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -82,6 +84,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CapacitacionRoute = CapacitacionRouteImport.update({
+  id: '/capacitacion',
+  path: '/capacitacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -115,6 +122,11 @@ const LimpiezaRoute = LimpiezaRouteImport.update({
 const MetaMensualRoute = MetaMensualRouteImport.update({
   id: '/meta-mensual',
   path: '/meta-mensual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacionesRoute = NotificacionesRouteImport.update({
+  id: '/notificaciones',
+  path: '/notificaciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagosRoute = PagosRouteImport.update({
@@ -154,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
+  '/capacitacion': typeof CapacitacionRoute
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
@@ -161,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/meta-mensual': typeof MetaMensualRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -178,6 +192,7 @@ export interface FileRoutesByTo {
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
+  '/capacitacion': typeof CapacitacionRoute
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
@@ -185,6 +200,7 @@ export interface FileRoutesByTo {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/meta-mensual': typeof MetaMensualRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -203,6 +219,7 @@ export interface FileRoutesById {
   '/admin-vacaciones': typeof AdminVacacionesRoute
   '/admin-ventas': typeof AdminVentasRoute
   '/auth': typeof AuthRoute
+  '/capacitacion': typeof CapacitacionRoute
   '/clientes': typeof ClientesRoute
   '/descansos': typeof DescansosRoute
   '/empleadas': typeof EmpleadasRoute
@@ -210,6 +227,7 @@ export interface FileRoutesById {
   '/insumos': typeof InsumosRoute
   '/limpieza': typeof LimpiezaRoute
   '/meta-mensual': typeof MetaMensualRoute
+  '/notificaciones': typeof NotificacionesRoute
   '/pagos': typeof PagosRoute
   '/perfumes': typeof PerfumesRoute
   '/ranking': typeof RankingRoute
@@ -229,6 +247,7 @@ export interface FileRouteTypes {
     | '/admin-vacaciones'
     | '/admin-ventas'
     | '/auth'
+    | '/capacitacion'
     | '/clientes'
     | '/descansos'
     | '/empleadas'
@@ -236,6 +255,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/meta-mensual'
+    | '/notificaciones'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -253,6 +273,7 @@ export interface FileRouteTypes {
     | '/admin-vacaciones'
     | '/admin-ventas'
     | '/auth'
+    | '/capacitacion'
     | '/clientes'
     | '/descansos'
     | '/empleadas'
@@ -260,6 +281,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/meta-mensual'
+    | '/notificaciones'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -277,6 +299,7 @@ export interface FileRouteTypes {
     | '/admin-vacaciones'
     | '/admin-ventas'
     | '/auth'
+    | '/capacitacion'
     | '/clientes'
     | '/descansos'
     | '/empleadas'
@@ -284,6 +307,7 @@ export interface FileRouteTypes {
     | '/insumos'
     | '/limpieza'
     | '/meta-mensual'
+    | '/notificaciones'
     | '/pagos'
     | '/perfumes'
     | '/ranking'
@@ -302,6 +326,7 @@ export interface RootRouteChildren {
   AdminVacacionesRoute: typeof AdminVacacionesRoute
   AdminVentasRoute: typeof AdminVentasRoute
   AuthRoute: typeof AuthRoute
+  CapacitacionRoute: typeof CapacitacionRoute
   ClientesRoute: typeof ClientesRoute
   DescansosRoute: typeof DescansosRoute
   EmpleadasRoute: typeof EmpleadasRoute
@@ -309,6 +334,7 @@ export interface RootRouteChildren {
   InsumosRoute: typeof InsumosRoute
   LimpiezaRoute: typeof LimpiezaRoute
   MetaMensualRoute: typeof MetaMensualRoute
+  NotificacionesRoute: typeof NotificacionesRoute
   PagosRoute: typeof PagosRoute
   PerfumesRoute: typeof PerfumesRoute
   RankingRoute: typeof RankingRoute
@@ -388,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/capacitacion': {
+      id: '/capacitacion'
+      path: '/capacitacion'
+      fullPath: '/capacitacion'
+      preLoaderRoute: typeof CapacitacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
@@ -435,6 +468,13 @@ declare module '@tanstack/react-router' {
       path: '/meta-mensual'
       fullPath: '/meta-mensual'
       preLoaderRoute: typeof MetaMensualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificaciones': {
+      id: '/notificaciones'
+      path: '/notificaciones'
+      fullPath: '/notificaciones'
+      preLoaderRoute: typeof NotificacionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagos': {
@@ -486,6 +526,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminVacacionesRoute: AdminVacacionesRoute,
   AdminVentasRoute: AdminVentasRoute,
   AuthRoute: AuthRoute,
+  CapacitacionRoute: CapacitacionRoute,
   ClientesRoute: ClientesRoute,
   DescansosRoute: DescansosRoute,
   EmpleadasRoute: EmpleadasRoute,
@@ -493,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsumosRoute: InsumosRoute,
   LimpiezaRoute: LimpiezaRoute,
   MetaMensualRoute: MetaMensualRoute,
+  NotificacionesRoute: NotificacionesRoute,
   PagosRoute: PagosRoute,
   PerfumesRoute: PerfumesRoute,
   RankingRoute: RankingRoute,
