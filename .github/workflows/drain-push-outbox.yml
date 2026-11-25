@@ -1,0 +1,81 @@
+
+name: Lula Shop - Procesar notificaciones Push
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+  workflow_dispatch:
+
+  push:
+    paths:
+      - "supabase/functions/drain-push-outbox-v2/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lula-shop-push-outbox
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar procesador Push
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Publicar función nueva
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "Faltan SUPABASE_ACCESS_TOKEN o SUPABASE_PROJECT_REF."
+            exit 1
+          fi
+
+          supabase functions deploy drain-push-outbox-v2 \
+            --project-ref "$SUPABASE_PROJECT_REF"
+
+  process:
+    name: Enviar notificaciones pendientes
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Validar secretos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY."
+            exit 1
+          fi
+
+      - name: Procesar cola Push
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          BASE_URL="${SUPABASE_URL%/}"
+
+          curl --fail-with-body --silent --show-error \
+            --retry 2 \
+            --retry-delay 5 \
+            --max-time 45 \
+            -X POST "$BASE_URL/functions/v1/drain-push-outbox-v2" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{}'
