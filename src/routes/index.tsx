@@ -1,3 +1,4 @@
+
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,30 +8,46 @@ import {
   getLastEntryForEmployee,
   getAllEntries,
   getCache,
-  setCache,
   queueEntry,
+  updateEntryLocation,
   type EntryType,
 } from "@/lib/offline-queue";
 import { syncPending } from "@/lib/sync";
 import { useOnline } from "@/lib/use-online";
 import { uuid } from "@/lib/uuid";
-import { captureFromFileInput, deviceLabel, geoReasonMessage, getPosition } from "@/lib/capture";
-import { fetchSchedules, scheduleIndex, evaluateEarlyClockOut, EARLY_OUT_FREE_MINUTES } from "@/lib/schedule";
+import { captureFromFileInput, deviceLabel, getPosition } from "@/lib/capture";
+import { scheduleIndex, evaluateEarlyClockOut } from "@/lib/schedule";
 import { feedbackClockIn, feedbackBreakEnd } from "@/lib/late-tracking";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Wifi, WifiOff, Settings, LogIn, LogOut, Coffee, Play, Camera, Loader2 } from "lucide-react";
+import {
+  Wifi,
+  WifiOff,
+  Settings,
+  LogIn,
+  LogOut,
+  Coffee,
+  Play,
+  Camera,
+  Loader2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Employee = { id: string; name: string; pin: string; color: string };
+type Employee = {
+  id: string;
+  name: string;
+  pin: string;
+  color: string;
+};
 
 function Index() {
   const navigate = useNavigate();
   const online = useOnline();
+
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -40,53 +57,89 @@ function Index() {
   const [pending, setPending] = useState(0);
   const [lastEntryType, setLastEntryType] = useState<EntryType | null>(null);
   const [busy, setBusy] = useState<EntryType | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const pendingActionRef = useRef<EntryType | null>(null);
+
   const [earlyOutOpen, setEarlyOutOpen] = useState(false);
   const [earlyOutComment, setEarlyOutComment] = useState("");
-  const [earlyOutInfo, setEarlyOutInfo] = useState<{ earlyMinutes: number; endLabel: string } | null>(null);
+
+  const [earlyOutInfo, setEarlyOutInfo] = useState<{
+    earlyMinutes: number;
+    endLabel: string;
+  } | null>(null);
+
   const pendingPhotoRef = useRef<Blob | null>(null);
   const pendingEarlyTypeRef = useRef<EntryType | null>(null);
+  const pendingTimestampRef = useRef<string | null>(null);
+  const pendingEarlyTimestampRef = useRef<string | null>(null);
 
-  // session + employees
+  // Sesión y colaboradores.
   useEffect(() => {
     let mounted = true;
 
     (async () => {
-      // Recuperar último ownerId conocido para arrancar offline
+      // Recuperar el último propietario conocido.
       try {
         const savedUid =
-          typeof window !== "undefined" ? window.localStorage.getItem("checador.ownerId") : null;
-        if (mounted && savedUid) setOwnerId(savedUid);
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("checador.ownerId")
+            : null;
+
+        if (mounted && savedUid) {
+          setOwnerId(savedUid);
+        }
       } catch {}
 
-      // Mostrar colaboradores cacheados inmediatamente
+      // Mostrar primero los colaboradores guardados localmente.
       try {
         const cached = await getCachedEmployees();
-        if (mounted && cached.length) setEmployees(cached);
+
+        if (mounted && cached.length) {
+          setEmployees(cached);
+        }
       } catch {}
 
-      // Intentar leer sesión con timeout para no colgar offline
+      // Leer la sesión sin dejar bloqueada la pantalla.
       let uid: string | null = null;
+
       try {
         const sessionPromise = supabase.auth.getSession();
-        const timeout = new Promise<{ data: { session: null } }>((resolve) =>
-          setTimeout(() => resolve({ data: { session: null } }), 1500),
+
+        const timeout = new Promise<{ data: { session: null } }>(
+          (resolve) =>
+            setTimeout(
+              () => resolve({ data: { session: null } }),
+              1500,
+            ),
         );
-        const { data } = (await Promise.race([sessionPromise, timeout])) as any;
+
+        const { data } = (await Promise.race([
+          sessionPromise,
+          timeout,
+        ])) as any;
+
         uid = data?.session?.user?.id ?? null;
       } catch {}
+
       if (!mounted) return;
+
       if (uid) {
         setOwnerId(uid);
+
         try {
           window.localStorage.setItem("checador.ownerId", uid);
         } catch {}
       }
+
       setLoading(false);
 
-      // Refrescar colaboradores desde servidor cuando haya conexión
-      if (uid && typeof navigator !== "undefined" && navigator.onLine) {
+      // Actualizar colaboradores en segundo plano.
+      if (
+        uid &&
+        typeof navigator !== "undefined" &&
+        navigator.onLine
+      ) {
         try {
           const { data: emps } = await supabase
             .from("employees")
@@ -94,6 +147,7 @@ function Index() {
             .eq("owner_id", uid)
             .eq("active", true)
             .order("name");
+
           if (mounted && emps) {
             setEmployees(emps);
             await cacheEmployees(emps);
@@ -102,56 +156,89 @@ function Index() {
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      const newUid = s?.user.id ?? null;
-      if (newUid) {
-        // Nunca limpiar ownerId automáticamente: debe seguir funcionando offline.
-        setOwnerId(newUid);
-        try {
-          window.localStorage.setItem("checador.ownerId", newUid);
-        } catch {}
-      }
-    });
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const newUid = session?.user.id ?? null;
+
+        if (newUid) {
+          setOwnerId(newUid);
+
+          try {
+            window.localStorage.setItem(
+              "checador.ownerId",
+              newUid,
+            );
+          } catch {}
+        }
+      },
+    );
+
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
   }, []);
 
-  // Reloj en tiempo real
+  // Reloj local.
   useEffect(() => {
     setNow(new Date());
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  // Sincronizar cuando vuelve internet
+  // Sincronización secundaria.
   const doSync = useCallback(async () => {
     if (!navigator.onLine || !ownerId) return;
+
     const { synced, failed } = await syncPending();
-    if (synced > 0) toast.success(`${synced} checada(s) sincronizada(s)`);
-    if (failed > 0) toast.error(`${failed} checada(s) no se pudieron sincronizar`);
+
+    if (synced > 0) {
+      toast.success(
+        `${synced} checada(s) sincronizada(s)`,
+      );
+    }
+
+    if (failed > 0) {
+      console.warn(
+        "[checador] Algunos registros siguen pendientes:",
+        failed,
+      );
+    }
+
     await refreshPending();
   }, [ownerId]);
 
   useEffect(() => {
     refreshPending();
-    if (online) doSync();
+
+    if (online) {
+      void doSync();
+    }
   }, [online, ownerId, doSync]);
 
   async function refreshPending() {
     const { getPendingEntries } = await import("@/lib/offline-queue");
-    const p = await getPendingEntries();
-    setPending(p.length);
+
+    const list = await getPendingEntries();
+
+    setPending(list.length);
   }
 
-  // Validación del PIN
+  // Validación local del PIN.
   useEffect(() => {
     if (pin.length === 4) {
-      const match = employees.find((e) => e.pin === pin);
+      const match = employees.find(
+        (employee) => employee.pin === pin,
+      );
+
       if (match) {
         setSelected(match);
         setPin("");
+
         getLastEntryForEmployee(match.id).then((last) => {
           setLastEntryType(last?.type ?? null);
         });
@@ -164,125 +251,224 @@ function Index() {
 
   function pinPress(n: string) {
     if (busy) return;
-    if (n === "del") setPin((p) => p.slice(0, -1));
-    else if (pin.length < 4) setPin((p) => p + n);
+
+    if (n === "del") {
+      setPin((p) => p.slice(0, -1));
+    } else if (pin.length < 4) {
+      setPin((p) => p + n);
+    }
   }
 
-  async function resolveScheduleForNow(empId: string) {
+  // Horarios guardados localmente. No consultar al servidor aquí.
+  async function resolveScheduleForNow(
+    empId: string,
+    when = new Date(),
+  ) {
     if (!ownerId) return undefined;
+
     try {
-      let list = await getCache<any[]>(`admin_schedules:${ownerId}`);
-      if (navigator.onLine) {
-        try {
-          list = await fetchSchedules(ownerId);
-          await setCache(`admin_schedules:${ownerId}`, list);
-        } catch {}
-      }
+      const list = await getCache<any[]>(
+        `admin_schedules:${ownerId}`,
+      );
+
       if (list?.length) {
-        return scheduleIndex(list).get(`\\( {empId}| \\){new Date().getDay()}`);
+        return scheduleIndex(list).get(
+          `${empId}|${when.getDay()}`,
+        );
       }
     } catch {}
+
     return undefined;
   }
 
-  async function doCheck(type: EntryType, photoBlob: Blob | null, earlyComment?: string | null) {
+  async function doCheck(
+    type: EntryType,
+    photoBlob: Blob | null,
+    earlyComment?: string | null,
+    occurredAtOverride?: string | null,
+  ) {
     if (!selected || !ownerId) return;
+
+    const employee = selected;
+
+    // Hora oficial capturada desde el primer toque.
+    const occurredAt =
+      occurredAtOverride || new Date().toISOString();
+
+    const when = new Date(occurredAt);
+
     setBusy(type);
+
     try {
-      // Evitar duplicados del mismo tipo en menos de 60 segundos
-      const last = await getLastEntryForEmployee(selected.id);
+      // Protección local contra duplicados.
+      const last = await getLastEntryForEmployee(employee.id);
+
       if (last && last.type === type) {
-        const ageSec = (Date.now() - new Date(last.occurred_at).getTime()) / 1000;
-        if (ageSec < 60) {
-          toast.warning(`Ya registraste ${labelFor(type).toLowerCase()} hace un momento`);
+        const ageSec =
+          (when.getTime() -
+            new Date(last.occurred_at).getTime()) /
+          1000;
+
+        if (ageSec >= 0 && ageSec < 60) {
+          toast.warning(
+            `Ya registraste ${labelFor(type).toLowerCase()} hace un momento`,
+          );
+
           setSelected(null);
           return;
         }
       }
 
-      const geo = await getPosition();
-      if (!geo.ok) {
-        toast.warning(geoReasonMessage(geo.reason));
-      }
-      const pos = geo.ok ? geo.position : null;
+      // PRIMERO: guardar la checada en IndexedDB.
+      // No esperar GPS, Internet ni Supabase.
       const entry = {
         client_id: uuid(),
         owner_id: ownerId,
-        employee_id: selected.id,
-        employee_name: selected.name,
+        employee_id: employee.id,
+        employee_name: employee.name,
         type,
-        occurred_at: new Date().toISOString(),
-        latitude: pos?.coords.latitude ?? null,
-        longitude: pos?.coords.longitude ?? null,
-        accuracy: pos?.coords.accuracy ?? null,
+        occurred_at: occurredAt,
+        latitude: null,
+        longitude: null,
+        accuracy: null,
+        location_pending: true,
         photo_blob: photoBlob,
         photo_path: null,
         device_label: earlyComment
-          ? `\\( {deviceLabel()} · salida anticipada ( \\){earlyComment})`
+          ? `${deviceLabel()} · salida anticipada (${earlyComment})`
           : deviceLabel(),
       };
+
       await queueEntry(entry);
 
-      // Mensajes de retardo para entrada y regreso de comida
-      try {
-        const when = new Date(entry.occurred_at);
-        if (type === "clock_in") {
-          let schedule = undefined;
-          if (ownerId) {
-            try {
-              let list = await getCache<any[]>(`admin_schedules:${ownerId}`);
-              if (navigator.onLine) {
-                try {
-                  list = await fetchSchedules(ownerId);
-                  await setCache(`admin_schedules:${ownerId}`, list);
-                } catch {}
-              }
-              if (list?.length) {
-                schedule = scheduleIndex(list).get(`\\( {selected.id}| \\){when.getDay()}`);
-              }
-            } catch {}
-          }
-          const fb = feedbackClockIn(selected.id, selected.name, when, schedule);
-          if (fb.late) {
-            if (fb.severity === "recurrent") toast.error(fb.message, { duration: 8000 });
-            else toast.warning(fb.message, { duration: 6000 });
+      // La checada ya está guardada. Liberar la pantalla.
+      setSelected(null);
+      setLastEntryType(type);
+
+      void refreshPending();
+
+      // GPS secundario. No bloquea la checada.
+      const geoTask = getPosition()
+        .then(async (geo) => {
+          if (geo.ok) {
+            await updateEntryLocation(entry.client_id, {
+              latitude: geo.position.coords.latitude,
+              longitude: geo.position.coords.longitude,
+              accuracy: geo.position.coords.accuracy,
+            });
           } else {
-            toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+            await updateEntryLocation(entry.client_id, {
+              latitude: null,
+              longitude: null,
+              accuracy: null,
+            });
+          }
+        })
+        .catch(async (error) => {
+          console.warn(
+            "[checador] GPS en segundo plano:",
+            error,
+          );
+
+          await updateEntryLocation(entry.client_id, {
+            latitude: null,
+            longitude: null,
+            accuracy: null,
+          }).catch(() => {});
+        });
+
+      // Retardos calculados con los horarios locales.
+      try {
+        if (type === "clock_in") {
+          const list = await getCache<any[]>(
+            `admin_schedules:${ownerId}`,
+          );
+
+          const schedule = list?.length
+            ? scheduleIndex(list).get(
+                `${employee.id}|${when.getDay()}`,
+              )
+            : undefined;
+
+          const fb = feedbackClockIn(
+            employee.id,
+            employee.name,
+            when,
+            schedule,
+          );
+
+          if (fb.late) {
+            if (fb.severity === "recurrent") {
+              toast.error(fb.message, { duration: 8000 });
+            } else {
+              toast.warning(fb.message, { duration: 6000 });
+            }
+          } else {
+            toast.success(
+              `${labelFor(type)} registrada para ${employee.name}`,
+            );
           }
         } else if (type === "break_end") {
           const all = await getAllEntries();
+
           const start = all
-            .filter((e) => e.employee_id === selected.id && e.type === "break_start")
-            .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())[0];
+            .filter(
+              (entry) =>
+                entry.employee_id === employee.id &&
+                entry.type === "break_start",
+            )
+            .sort(
+              (a, b) =>
+                new Date(b.occurred_at).getTime() -
+                new Date(a.occurred_at).getTime(),
+            )[0];
+
           if (start) {
             const fb = feedbackBreakEnd(
-              selected.id,
-              selected.name,
+              employee.id,
+              employee.name,
               new Date(start.occurred_at),
               when,
             );
+
             if (fb.late) {
-              if (fb.severity === "recurrent") toast.error(fb.message, { duration: 8000 });
-              else toast.warning(fb.message, { duration: 6000 });
+              if (fb.severity === "recurrent") {
+                toast.error(fb.message, { duration: 8000 });
+              } else {
+                toast.warning(fb.message, { duration: 6000 });
+              }
             } else {
-              toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+              toast.success(
+                `${labelFor(type)} registrada para ${employee.name}`,
+              );
             }
           } else {
-            toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+            toast.success(
+              `${labelFor(type)} registrada para ${employee.name}`,
+            );
           }
         } else {
-          toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+          toast.success(
+            `${labelFor(type)} registrada para ${employee.name}`,
+          );
         }
       } catch {
-        toast.success(`${labelFor(type)} registrada para ${selected.name}`);
+        toast.success(
+          `${labelFor(type)} registrada para ${employee.name}`,
+        );
       }
 
-      setSelected(null);
-      setLastEntryType(type);
-      await refreshPending();
-      if (navigator.onLine) doSync();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Error");
+      // Sincronizar después del intento de GPS, sin bloquear la interfaz.
+      void geoTask.finally(() => {
+        if (navigator.onLine) {
+          void doSync();
+        }
+      });
+    } catch (error: any) {
+      toast.error(
+        error?.message ??
+          "No se pudo guardar la checada. Inténtalo nuevamente.",
+      );
     } finally {
       setBusy(null);
     }
@@ -290,16 +476,34 @@ function Index() {
 
   function triggerCheck(type: EntryType) {
     pendingActionRef.current = type;
+
+    // Registrar hora exacta antes de abrir la cámara.
+    pendingTimestampRef.current = new Date().toISOString();
+
     fileRef.current?.click();
   }
 
-  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPhoto(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
     const action = pendingActionRef.current;
+
     pendingActionRef.current = null;
+
+    const occurredAt =
+      pendingTimestampRef.current ??
+      new Date().toISOString();
+
+    pendingTimestampRef.current = null;
+
     const file = e.target.files?.[0];
+
     e.target.value = "";
+
     if (!action) return;
+
     let blob: Blob | null = null;
+
     if (file) {
       try {
         blob = await captureFromFileInput(file);
@@ -308,44 +512,81 @@ function Index() {
       }
     }
 
-    // Salida anticipada: pedir motivo si faltan más de 2 minutos al cierre
+    // Salida anticipada.
     if (action === "clock_out" && selected) {
-      const sch = await resolveScheduleForNow(selected.id);
-      const evalEarly = evaluateEarlyClockOut(new Date(), sch);
-      if (evalEarly.requiresComment) {
+      const checkTime = new Date(occurredAt);
+
+      const schedule = await resolveScheduleForNow(
+        selected.id,
+        checkTime,
+      );
+
+      const evaluation = evaluateEarlyClockOut(
+        checkTime,
+        schedule,
+      );
+
+      if (evaluation.requiresComment) {
         pendingPhotoRef.current = blob;
         pendingEarlyTypeRef.current = action;
-        setEarlyOutInfo({ earlyMinutes: evalEarly.earlyMinutes, endLabel: evalEarly.endLabel });
+        pendingEarlyTimestampRef.current = occurredAt;
+
+        setEarlyOutInfo({
+          earlyMinutes: evaluation.earlyMinutes,
+          endLabel: evaluation.endLabel,
+        });
+
         setEarlyOutComment("");
         setEarlyOutOpen(true);
+
         return;
       }
     }
-    doCheck(action, blob);
+
+    void doCheck(action, blob, null, occurredAt);
   }
 
   async function confirmEarlyOut() {
     const comment = earlyOutComment.trim();
+
     if (comment.length < 3) {
-      toast.error("Escribe el motivo de la salida anticipada");
+      toast.error(
+        "Escribe el motivo de la salida anticipada",
+      );
       return;
     }
-    const action = pendingEarlyTypeRef.current ?? "clock_out";
+
+    const action =
+      pendingEarlyTypeRef.current ?? "clock_out";
+
     const blob = pendingPhotoRef.current;
+    const occurredAt = pendingEarlyTimestampRef.current;
+
     setEarlyOutOpen(false);
+
     pendingEarlyTypeRef.current = null;
+    pendingEarlyTimestampRef.current = null;
     pendingPhotoRef.current = null;
+
     setEarlyOutInfo(null);
-    await doCheck(action, blob, comment);
+
+    await doCheck(action, blob, comment, occurredAt);
   }
 
   function cancelEarlyOut() {
     setEarlyOutOpen(false);
+
     pendingEarlyTypeRef.current = null;
+    pendingEarlyTimestampRef.current = null;
+    pendingTimestampRef.current = null;
     pendingPhotoRef.current = null;
+
     setEarlyOutInfo(null);
     setEarlyOutComment("");
-    toast.message("Salida cancelada. Puedes intentarlo de nuevo.");
+
+    toast.message(
+      "Salida cancelada. Puedes intentarlo de nuevo.",
+    );
   }
 
   if (loading) {
@@ -360,11 +601,19 @@ function Index() {
     return (
       <div className="min-h-screen grid place-items-center bg-gradient-to-br from-pink-50 to-rose-100 p-6 text-center">
         <Card className="p-6 space-y-4 max-w-sm">
-          <h1 className="text-xl font-semibold">Reloj Checador</h1>
+          <h1 className="text-xl font-semibold">
+            Reloj Checador
+          </h1>
+
           <p className="text-sm text-muted-foreground">
-            Inicia sesión con tu cuenta de administradora para empezar.
+            Inicia sesión con tu cuenta de administradora
+            para empezar.
           </p>
-          <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>
+
+          <Button
+            className="w-full"
+            onClick={() => navigate({ to: "/auth" })}
+          >
             Entrar
           </Button>
         </Card>
@@ -376,11 +625,19 @@ function Index() {
     return (
       <div className="min-h-screen grid place-items-center bg-gradient-to-br from-pink-50 to-rose-100 p-6 text-center">
         <Card className="p-6 space-y-4 max-w-sm">
-          <h1 className="text-xl font-semibold">¡Bienvenida!</h1>
+          <h1 className="text-xl font-semibold">
+            ¡Bienvenida!
+          </h1>
+
           <p className="text-sm text-muted-foreground">
-            Primero agrega a tus colaboradores y asígnales un PIN de 4 dígitos.
+            Primero agrega a tus colaboradores y asígnales
+            un PIN de 4 dígitos.
           </p>
-          <Button className="w-full" onClick={() => navigate({ to: "/empleadas" })}>
+
+          <Button
+            className="w-full"
+            onClick={() => navigate({ to: "/empleadas" })}
+          >
             Agregar colaboradores
           </Button>
         </Card>
@@ -388,17 +645,28 @@ function Index() {
     );
   }
 
-  // Pantalla de acciones de la colaboradora
+  // Pantalla de acciones de la colaboradora.
   if (selected) {
-    const isWorking = lastEntryType === "clock_in" || lastEntryType === "break_end";
+    const isWorking =
+      lastEntryType === "clock_in" ||
+      lastEntryType === "break_end";
+
     const isOnBreak = lastEntryType === "break_start";
+
     return (
       <div className="min-h-screen flex flex-col p-5 text-slate-700 bg-gradient-to-br from-rose-50 via-white to-pink-100">
         <TopBar online={online} pending={pending} />
+
         <div className="flex-1 flex flex-col items-center justify-center gap-6 text-center">
           <div>
-            <p className="text-slate-500 text-sm">Hola</p>
-            <h2 className="text-4xl font-bold text-slate-800">{selected.name}</h2>
+            <p className="text-slate-500 text-sm">
+              Hola
+            </p>
+
+            <h2 className="text-4xl font-bold text-slate-800">
+              {selected.name}
+            </h2>
+
             <p className="text-slate-600 mt-2 tabular-nums text-lg">
               {now
                 ? now.toLocaleTimeString("es-MX", {
@@ -409,6 +677,7 @@ function Index() {
                   })
                 : "--:--"}
             </p>
+
             <p className="text-slate-500 text-xs">
               {now
                 ? now.toLocaleDateString("es-MX", {
@@ -430,6 +699,7 @@ function Index() {
                 primary
               />
             )}
+
             {isWorking && (
               <>
                 <ActionBtn
@@ -438,6 +708,7 @@ function Index() {
                   icon={<Coffee className="h-5 w-5" />}
                   label="Iniciar descanso"
                 />
+
                 <ActionBtn
                   onClick={() => triggerCheck("clock_out")}
                   busy={busy === "clock_out"}
@@ -447,6 +718,7 @@ function Index() {
                 />
               </>
             )}
+
             {isOnBreak && (
               <ActionBtn
                 onClick={() => triggerCheck("break_end")}
@@ -465,10 +737,13 @@ function Index() {
               Cancelar
             </Button>
           </div>
+
           <p className="text-xs text-slate-500 flex items-center gap-1">
-            <Camera className="h-3 w-3" /> Se tomará una foto al checar
+            <Camera className="h-3 w-3" />
+            Se tomará una foto al checar
           </p>
         </div>
+
         <input
           ref={fileRef}
           type="file"
@@ -478,25 +753,31 @@ function Index() {
           onChange={onPhoto}
         />
 
-        {/* Modal salida anticipada — arregla el bloqueo al cerrar el día */}
         {earlyOutOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-800">Salida anticipada</h3>
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Salida anticipada
+                </h3>
+
                 <p className="text-sm text-slate-600 mt-1">
                   {earlyOutInfo
                     ? `Faltan ${earlyOutInfo.earlyMinutes} min para las ${earlyOutInfo.endLabel}. Escribe el motivo para registrar la salida.`
                     : "Escribe el motivo de la salida anticipada."}
                 </p>
               </div>
+
               <textarea
                 className="w-full min-h-[88px] rounded-xl border border-pink-200 bg-pink-50/40 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300"
                 placeholder="Ej. cita médica, permiso de la jefa…"
                 value={earlyOutComment}
-                onChange={(e) => setEarlyOutComment(e.target.value)}
+                onChange={(e) =>
+                  setEarlyOutComment(e.target.value)
+                }
                 autoFocus
               />
+
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
@@ -506,6 +787,7 @@ function Index() {
                 >
                   Cancelar
                 </Button>
+
                 <Button
                   className="flex-1 bg-gradient-to-r from-pink-400 to-rose-300 text-white hover:from-pink-500 hover:to-rose-400"
                   onClick={confirmEarlyOut}
@@ -525,32 +807,47 @@ function Index() {
     );
   }
 
-  // Pantalla del PIN
+  // Pantalla del PIN.
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-100 text-slate-700 flex flex-col p-5">
       <TopBar online={online} pending={pending} />
+
       <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm mx-auto w-full">
         <div className="text-center">
           <p className="text-5xl font-bold tabular-nums tracking-tight text-slate-700">
             {now
-              ? now.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true })
+              ? now.toLocaleTimeString("es-MX", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })
               : "--:--"}
           </p>
+
           <p className="text-slate-500 text-sm capitalize">
             {now
-              ? now.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })
+              ? now.toLocaleDateString("es-MX", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })
               : ""}
           </p>
         </div>
 
         <div>
-          <p className="text-center text-slate-600 text-sm mb-3">Ingresa tu PIN</p>
+          <p className="text-center text-slate-600 text-sm mb-3">
+            Ingresa tu PIN
+          </p>
+
           <div className="flex gap-3 justify-center">
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
                 className={`h-4 w-4 rounded-full border-2 transition-colors ${
-                  pin.length > i ? "bg-pink-400 border-pink-400" : "border-pink-200"
+                  pin.length > i
+                    ? "bg-pink-400 border-pink-400"
+                    : "border-pink-200"
                 }`}
               />
             ))}
@@ -559,19 +856,32 @@ function Index() {
 
         <div className="grid grid-cols-3 gap-3 w-full">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((n) => (
-            <KeypadBtn key={n} onClick={() => pinPress(n)}>
+            <KeypadBtn
+              key={n}
+              onClick={() => pinPress(n)}
+            >
               {n}
             </KeypadBtn>
           ))}
+
           <div />
-          <KeypadBtn onClick={() => pinPress("0")}>0</KeypadBtn>
-          <KeypadBtn onClick={() => pinPress("del")}>⌫</KeypadBtn>
+
+          <KeypadBtn onClick={() => pinPress("0")}>
+            0
+          </KeypadBtn>
+
+          <KeypadBtn onClick={() => pinPress("del")}>
+            ⌫
+          </KeypadBtn>
         </div>
 
         <div className="flex gap-2 text-xs flex-wrap justify-center text-slate-500">
-          {employees.map((e) => (
-            <span key={e.id} className="px-2 py-1 rounded-full bg-white/70 border border-pink-100">
-              {e.name}
+          {employees.map((employee) => (
+            <span
+              key={employee.id}
+              className="px-2 py-1 rounded-full bg-white/70 border border-pink-100"
+            >
+              {employee.name}
             </span>
           ))}
         </div>
@@ -583,56 +893,76 @@ function Index() {
             ✨ Limpieza
           </Button>
         </Link>
+
         <Link to="/insumos">
           <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white">
             📦 Solicitar Insumos
           </Button>
         </Link>
+
         <Link to="/faltantes">
           <Button size="sm" className="bg-slate-700 hover:bg-slate-800 text-white">
             📦 Faltantes
           </Button>
         </Link>
+
         <Link to="/descansos">
           <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
             🛌🌴 Descansos y Vacaciones
           </Button>
         </Link>
+
         <Link to="/pagos">
           <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700 text-white">
             💵 Mis Pagos
           </Button>
         </Link>
+
         <Link to="/clientes">
           <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
             💖 Clientes
           </Button>
         </Link>
+
         <Link to="/ventas">
           <Button size="sm" className="bg-rose-600 hover:bg-rose-700 text-white">
             📈 Ventas Agregadas
           </Button>
         </Link>
+
         <Link to="/perfumes">
           <Button size="sm" className="bg-fuchsia-600 hover:bg-fuchsia-700 text-white">
             🧴 Perfumes
           </Button>
         </Link>
+
         <Link to="/ranking">
           <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white">
             🏆 Ranking
           </Button>
         </Link>
+
         <Link to="/empleadas">
-          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-pink-100 hover:text-slate-800">
-            <Settings className="h-4 w-4 mr-1" /> Colaboradores
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-600 hover:bg-pink-100 hover:text-slate-800"
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            Colaboradores
           </Button>
         </Link>
+
         <Link to="/admin">
-          <Button variant="ghost" size="sm" className="text-slate-600 hover:bg-pink-100 hover:text-slate-800">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-600 hover:bg-pink-100 hover:text-slate-800"
+          >
             Reportes
           </Button>
         </Link>
+
         <Link to="/capacitacion">
           <Button size="sm" className="bg-pink-600 hover:bg-pink-700 text-white">
             📚 Capacitación Lula Shop
@@ -643,7 +973,13 @@ function Index() {
   );
 }
 
-function KeypadBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function KeypadBtn({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -679,20 +1015,37 @@ function ActionBtn({
           : "bg-white/80 border border-pink-100 text-slate-700 hover:bg-pink-50 shadow-sm"
       } disabled:opacity-60`}
     >
-      {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
+      {busy ? (
+        <Loader2 className="h-5 w-5 animate-spin" />
+      ) : (
+        icon
+      )}
       {label}
     </button>
   );
 }
 
-function TopBar({ online, pending }: { online: boolean; pending: number }) {
+function TopBar({
+  online,
+  pending,
+}: {
+  online: boolean;
+  pending: number;
+}) {
   const muted = "text-slate-500";
+
   return (
     <div className={`flex items-center justify-between text-xs ${muted}`}>
       <span className="flex items-center gap-1">
-        {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+        {online ? (
+          <Wifi className="h-3.5 w-3.5" />
+        ) : (
+          <WifiOff className="h-3.5 w-3.5" />
+        )}
+
         {online ? "En línea" : "Sin conexión"}
       </span>
+
       {pending > 0 && (
         <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700">
           {pending} pendiente{pending === 1 ? "" : "s"}
@@ -706,10 +1059,13 @@ function labelFor(t: EntryType) {
   switch (t) {
     case "clock_in":
       return "Entrada";
+
     case "clock_out":
       return "Salida";
+
     case "break_start":
       return "Inicio de descanso";
+
     case "break_end":
       return "Fin de descanso";
   }
