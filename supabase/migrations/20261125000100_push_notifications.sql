@@ -1,4 +1,3 @@
-
 -- =========================================================
 -- LULA SHOP · NOTIFICACIONES PUSH
 -- Migración aislada. No modifica ni elimina registros
@@ -99,8 +98,6 @@ GRANT ALL ON public.notification_outbox TO service_role;
 
 
 -- 4. Registro de entrega individual por teléfono.
--- Evita reenviar a un teléfono que ya recibió el mismo evento
--- cuando el otro teléfono tuvo un error.
 CREATE TABLE IF NOT EXISTS public.push_deliveries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   outbox_id uuid NOT NULL
@@ -165,8 +162,6 @@ GRANT EXECUTE ON FUNCTION public.enqueue_push_notification(
 
 
 -- 6. Reclamar eventos de forma segura.
--- SKIP LOCKED evita que dos procesadores reclamen simultáneamente
--- la misma fila durante la operación de reclamación.
 CREATE OR REPLACE FUNCTION public.claim_notification_outbox(
   p_batch_size integer DEFAULT 25
 )
@@ -204,7 +199,6 @@ TO service_role;
 
 
 -- 7. Trigger de checadas.
--- Cualquier error de Push se captura y nunca cancela la checada.
 CREATE OR REPLACE FUNCTION public.notify_time_entry_insert()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -300,7 +294,7 @@ BEGIN
         'branch', NEW.branch,
         'supply_name', COALESCE(v_supply_name, 'Producto'),
         'quantity', NEW.quantity,
-        'reason', NEW.reason,
+        'reason', NEW.notes,
         'created_at', NEW.created_at
       )
     );
@@ -322,7 +316,6 @@ EXECUTE FUNCTION public.notify_supply_request_insert();
 
 
 -- 9. Trigger de reportes de faltantes.
--- Solo avisa al crear el reporte; no avisa por cada edición.
 CREATE OR REPLACE FUNCTION public.notify_shortage_report_insert()
 RETURNS trigger
 LANGUAGE plpgsql
