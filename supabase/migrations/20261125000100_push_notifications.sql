@@ -1,10 +1,11 @@
+
 -- =========================================================
 -- LULA SHOP · NOTIFICACIONES PUSH
--- Migración aislada. No modifica ni elimina registros
--- de checadas, solicitudes o reportes existentes.
+-- Migración aislada y segura.
+-- No modifica ni elimina registros existentes.
 -- =========================================================
 
--- 1. Dispositivos autorizados para recibir avisos.
+-- 1. DISPOSITIVOS AUTORIZADOS
 CREATE TABLE IF NOT EXISTS public.push_subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -35,7 +36,7 @@ ON public.push_subscriptions TO authenticated;
 GRANT ALL ON public.push_subscriptions TO service_role;
 
 
--- 2. Preferencias por tipo de notificación.
+-- 2. PREFERENCIAS DE NOTIFICACIÓN
 CREATE TABLE IF NOT EXISTS public.notification_preferences (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -73,7 +74,7 @@ ON public.notification_preferences TO authenticated;
 GRANT ALL ON public.notification_preferences TO service_role;
 
 
--- 3. Cola privada de eventos pendientes.
+-- 3. COLA PRIVADA DE NOTIFICACIONES
 CREATE TABLE IF NOT EXISTS public.notification_outbox (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -97,7 +98,7 @@ REVOKE ALL ON public.notification_outbox FROM anon, authenticated;
 GRANT ALL ON public.notification_outbox TO service_role;
 
 
--- 4. Registro de entrega individual por teléfono.
+-- 4. REGISTRO DE ENTREGAS
 CREATE TABLE IF NOT EXISTS public.push_deliveries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   outbox_id uuid NOT NULL
@@ -117,7 +118,7 @@ REVOKE ALL ON public.push_deliveries FROM anon, authenticated;
 GRANT ALL ON public.push_deliveries TO service_role;
 
 
--- 5. Función interna para agregar eventos a la cola.
+-- 5. FUNCIÓN PARA ENCOLAR NOTIFICACIONES
 CREATE OR REPLACE FUNCTION public.enqueue_push_notification(
   p_owner_id uuid,
   p_event_key text,
@@ -161,7 +162,7 @@ GRANT EXECUTE ON FUNCTION public.enqueue_push_notification(
 ) TO service_role;
 
 
--- 6. Reclamar eventos de forma segura.
+-- 6. FUNCIÓN PARA RECLAMAR EVENTOS PENDIENTES
 CREATE OR REPLACE FUNCTION public.claim_notification_outbox(
   p_batch_size integer DEFAULT 25
 )
@@ -198,7 +199,7 @@ GRANT EXECUTE ON FUNCTION public.claim_notification_outbox(integer)
 TO service_role;
 
 
--- 7. Trigger de checadas.
+-- 7. NOTIFICACIONES DE CHECADAS
 CREATE OR REPLACE FUNCTION public.notify_time_entry_insert()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -242,6 +243,7 @@ BEGIN
         'device_label', NEW.device_label
       )
     );
+
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING '[push] No se pudo encolar checada: %', SQLERRM;
   END;
@@ -259,7 +261,7 @@ FOR EACH ROW
 EXECUTE FUNCTION public.notify_time_entry_insert();
 
 
--- 8. Trigger de solicitudes de insumos.
+-- 8. NOTIFICACIONES DE SOLICITUDES DE INSUMOS
 CREATE OR REPLACE FUNCTION public.notify_supply_request_insert()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -287,17 +289,20 @@ BEGIN
       COALESCE(v_employee_name, 'Colaboradora')
         || ' · ' || COALESCE(NEW.branch, 'Sucursal')
         || ' · ' || COALESCE(v_supply_name, 'Producto')
-        || ' · Cantidad: ' || NEW.quantity::text,
+        || ' · Cantidad: ' || NEW.quantity::text
+        || ' · Motivo: ' || NEW.reason::text,
       jsonb_build_object(
         'employee_id', NEW.employee_id,
         'employee_name', COALESCE(v_employee_name, 'Colaboradora'),
         'branch', NEW.branch,
         'supply_name', COALESCE(v_supply_name, 'Producto'),
         'quantity', NEW.quantity,
-        'reason', NEW.notes,
+        'reason', NEW.reason::text,
+        'notes', NEW.notes,
         'created_at', NEW.created_at
       )
     );
+
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING '[push] No se pudo encolar solicitud: %', SQLERRM;
   END;
@@ -315,15 +320,19 @@ FOR EACH ROW
 EXECUTE FUNCTION public.notify_supply_request_insert();
 
 
--- 9. Trigger de reportes de faltantes.
+-- 9. NOTIFICACIONES DE REPORTES DE FALTANTES
 CREATE OR REPLACE FUNCTION public.notify_shortage_report_insert()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_item_count integer;
 BEGIN
   BEGIN
+    v_item_count := COALESCE(cardinality(NEW.items), 0);
+
     PERFORM public.enqueue_push_notification(
       NEW.owner_id,
       'shortage_report:' || NEW.id::text,
@@ -331,17 +340,18 @@ BEGIN
       'Nuevo reporte de faltantes',
       COALESCE(NEW.employee_name, 'Colaboradora')
         || ' · ' || COALESCE(NEW.branch, 'Sucursal')
-        || ' · ' || cardinality(NEW.items)::text || ' productos',
+        || ' · ' || v_item_count::text || ' productos',
       jsonb_build_object(
         'employee_id', NEW.employee_id,
         'employee_name', NEW.employee_name,
         'branch', NEW.branch,
         'report_date', NEW.report_date,
-        'item_count', cardinality(NEW.items),
+        'item_count', v_item_count,
         'comment', NEW.comment,
         'created_at', NEW.created_at
       )
     );
+
   EXCEPTION WHEN OTHERS THEN
     RAISE WARNING '[push] No se pudo encolar reporte: %', SQLERRM;
   END;
@@ -359,7 +369,7 @@ FOR EACH ROW
 EXECUTE FUNCTION public.notify_shortage_report_insert();
 
 
--- 10. Índices.
+-- 10. ÍNDICES
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_owner_active
 ON public.push_subscriptions (owner_id, active);
 
@@ -372,3 +382,5 @@ ON public.notification_preferences (owner_id, event_type);
 
 CREATE INDEX IF NOT EXISTS idx_push_deliveries_pending
 ON public.push_deliveries (outbox_id, delivered_at);
+
+-- FIN DE LA MIGRACIÓN
