@@ -1,7 +1,7 @@
 
 // Service Worker offline-first para Reloj Checador Lula Shop.
 // Aumentar VERSION cuando se publique una nueva versión.
-const VERSION = "v7";
+const VERSION = "v8";
 
 const SHELL_CACHE = `checador-shell-${VERSION}`;
 const ASSET_CACHE = `checador-assets-${VERSION}`;
@@ -316,6 +316,68 @@ self.addEventListener("fetch", (event) => {
           status: 504,
         });
       }
+    })(),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {
+      title: "Reloj Checador Lula Shop",
+      body: event.data ? event.data.text() : "Tienes un aviso nuevo.",
+    };
+  }
+
+  const title = data.title || "Reloj Checador Lula Shop";
+
+  const options = {
+    body: data.body || "Tienes una notificación nueva.",
+    icon: "/icon-512.png",
+    badge: "/icon-512.png",
+    tag: data.tag || "lula-shop-notification",
+    renotify: false,
+    data: {
+      url: data.url || "/",
+      details: data.data || {},
+    },
+    vibrate: [200, 100, 200],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const targetUrl =
+    event.notification.data?.url || "/";
+
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      for (const client of windows) {
+        if ("focus" in client) {
+          await client.focus();
+
+          if ("navigate" in client) {
+            await client.navigate(targetUrl);
+          }
+
+          return;
+        }
+      }
+
+      await self.clients.openWindow(targetUrl);
     })(),
   );
 });
